@@ -1,0 +1,65 @@
+{% extends "base_generic.html" %} {% block content %}
+<title>Импорт</title>
+<header class="header">
+  <div class="container">
+    <div class="header-content">
+      <nav class="nav-menu" id="nav-menu">
+        <a href="/workspace" class="nav-link">Главная <i class="bi bi-house-fill"></i></a>
+        <a href="/workspace/in_work" class="nav-link">В работе <i class="bi bi-wrench-adjustable-circle-fill"></i></a>
+        <a href="/workspace/hidden" class="nav-link">Скрытые <i class="bi bi-eye-slash-fill"></i></a>
+        <a href="/workspace/workers_list" class="nav-link">Работники <i class="bi bi-tools"></i></a>
+        <a href="/workspace/questions" class="nav-link">
+          Вопросы <i class="bi bi-question-circle"></i>
+          {% if questions and questions < 9 %}
+          <span class="notification-badge">{{ questions }}</span>
+          {% elif questions and questions > 9 %}
+          <span class="notification-badge">9+</span>
+          {% endif %}
+        </a>
+        <a href="/workspace/migrate" class="nav-link active-link">Импорт <i class="bi bi-arrow-bar-down"></i></a>
+        <a href="/workspace/blacklist" class="nav-link">Настройки <i class="bi bi-gear-fill"></i></a>
+      </nav>
+      <div class="nav-toggle" id="nav-toggle">
+        <span class="bar"></span>
+        <span class="bar"></span>
+        <span class="bar"></span>
+      </div>
+    </div>
+  </div>
+</header>
+<div class="centered_page">
+  <h1>Импорт данных из Excel-таблиц</h1>
+  {% if form and not products %}
+  <form action="" method="post" enctype="multipart/form-data">
+    {% csrf_token %} {{ form }}
+    <input type="submit" name="start_migration" value="Перенести данные" id="migrate-btn" />
+  </form>
+  {% endif %} {% if products %}
+  <div class="default_table_container">
+    <table class="default_table">
+      <tr>
+        <th>Код изделия</th>
+        <th>Наименование</th>
+        <th>Кол-во</th>
+        <th>Стоимость</th>
+      </tr>
+      {% for product in products.values %}
+      <tr>
+        <td><strong>{{ object }}-{{ product.number }}</strong></td>
+        <td>{{ product.name }}</td>
+        <td>{{ product.amount }}</td>
+        <td>{{ product.price }}</td>
+      </tr>
+      {% for part in product.parts.values %}
+      <tr>
+        <td></td>
+        <td>{{ part.name }}</td>
+        <td>{{ part.amount }}</td>
+        <td>{{ part.price }}</td>
+      </tr>
+      {% endfor %} {% endfor %}
+    </table>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

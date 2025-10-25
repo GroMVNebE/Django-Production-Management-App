@@ -1,0 +1,67 @@
+{% extends "base_generic.html" %} {% block content %}
+<title>{{ instance }}</title>
+<header class="header">
+  <div class="container">
+    <div class="header-content">
+      <nav class="nav-left">
+        <a href="/workspace/questions" class="nav-link">Вопросы <i class="bi bi-question-circle"></i></a>
+      </nav>
+    </div>
+  </div>
+</header>
+<div class="centered_page">
+  <div class="item_block" style="padding-bottom: 10px; border-radius: 0 0 16px 16px">
+    {% if instance.product %}
+    <h1>Изделие №{{ instance.product.get_id }}</h1>
+    <p class="product-name">{{ instance.product.name }}</p>
+    {% elif instance.part %}
+    <h1>Часть №{{ instance.part.get_id }}</h1>
+    <p class="product-name">{{ instance.part.name }}</p>
+    {% endif %} {% comment %}
+    <p>
+      <strong><i>Время до сдачи изделия:</i></strong>
+    </p>
+    <p>{{ instance.product.get_deadline_days }}</p>
+    {% endcomment %} {% if instance.product %} {% if instance.product.description %}
+    <p>{{ instance.product.description }}</p>
+    {% endif %} {% else %} {% if instance.part.product.description %}
+    <p>{{ instance.part.product.description }}</p>
+    {% endif %} {% endif %}
+    <div style="margin-top: 2rem">
+      <p style="font-size: x-large">Изготавливается: <strong>{{ instance.amount }}</strong></p>
+    </div>
+    <div class="questions">
+      <h2>Вопросы по изготовлению изделия</h2>
+      {% for question in questions %}
+      <div class="d-flex mb-3">
+        <div class="text-white rounded-3 px-3 py-2" style="background-color: #65d37d">
+          <p class="mb-0"><i class="bi bi-question-circle"></i>&emsp; {{ question.quest }}</p>
+        </div>
+      </div>
+      <div class="d-flex mb-3 justify-content-end">
+        <div class="text-white rounded-3 px-3 py-2" style="background-color: #3c3f44">
+          {% if question.answer %}
+          <p class="mb-0"><i>{{ question.answer }}</i>&emsp;<i class="bi bi-chat-dots"></i></p>
+          {% else %}
+          <form action="" method="get">
+            <button type="submit" class="answ-btn" name="question" value="{{ question.id }}">
+              <i class="bi bi-arrow-return-right"></i>
+            </button>
+          </form>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% if form %}
+    <form action="" method="post">
+      {% csrf_token %}
+      <div style="display: flex; justify-content: center; align-items: center">
+        {{ form }}
+        <button type="submit" id="send-answer-btn"><i class="bi bi-send-check-fill"></i></button>
+      </div>
+    </form>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

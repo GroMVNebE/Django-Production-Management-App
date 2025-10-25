@@ -1,0 +1,48 @@
+{% extends "base_generic.html" %} {% block content %}
+<title>{{ product }}</title>
+<header class="header">
+  <div class="container">
+    <div class="header-content">
+      <nav class="nav-left">
+        <a href="/workspace" class="nav-link">Главная <i class="bi bi-house-fill"></i></a>
+      </nav>
+    </div>
+  </div>
+</header>
+<div class="centered_page">
+  <div class="item_block" style="padding-bottom: 20px; border-radius: 0 0 24px 24px">
+    <h1>Изделие №{{ product.get_id }}</h1>
+    <p class="product-name">{{ product.name }}</p>
+    {% comment %}
+    <p>
+      <strong><i>Время до сдачи изделия:</i></strong> {{ product.get_deadline_days }}
+    </p>
+    {% endcomment %}
+    <div id="details">{% include 'partials/product_details.html' %}</div>
+  </div>
+</div>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+  $(document).ready(function () {
+    function updateData() {
+      $.ajax({
+        url: window.location.pathname,
+        headers: {
+          "X-Requested-With": "XMLHttpRequest",
+        },
+        success: function (data) {
+          if (data.html != "" && data.return != true) {
+            $("#details").html(data.html);
+          }
+          if (data.return == true) {
+            window.location.href = "/workspace";
+          }
+        },
+      });
+    }
+
+    // Устанавливаем интервал обновления каждые 1.5 секунды
+    setInterval(updateData, 1500);
+  });
+</script>
+{% endblock %}

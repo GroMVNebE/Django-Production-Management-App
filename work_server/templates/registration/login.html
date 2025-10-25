@@ -1,0 +1,34 @@
+{% extends "base_generic.html" %} {% block content %}
+<div id="login_page">
+  <title>Авторизация</title>
+  <h1>Авторизация:</h1>
+  {% if form.errors %}
+  <p class="error_txt">Логин и пароль не совпадают. Попробуйте снова!</p>
+  {% endif %} {% if next %} {% if user.is_authenticated %}
+  <p class="error_txt">У Вас нет доступа к этой странице!</p>
+  {% endif %} {% endif %}
+  <form
+    method="post"
+    action="{% url 'login' %}">
+    {% csrf_token %}
+    <table id="input_table">
+      <tr>
+        <td>Логин:</td>
+        <td>{{ form.username }}</td>
+      </tr>
+      <tr>
+        <td>Пароль:</td>
+        <td>{{ form.password }}</td>
+      </tr>
+    </table>
+    <input
+      type="submit"
+      value="Авторизоваться"
+      id="login-btn" />
+    <input
+      type="hidden"
+      name="next"
+      value="{{ next }}" />
+  </form>
+</div>
+{% endblock %}

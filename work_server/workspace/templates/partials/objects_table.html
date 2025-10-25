@@ -1,0 +1,12 @@
+{% for object in objects %}
+<tr>
+  <td style="background-color: {{ object.get_state_color }}; text-align: center; font-weight: bold">
+    <a href="{{ object.get_absolute_url }}" class="table-link">{{ object.obj_number }}</a>
+  </td>
+  <td>
+    <div class="progress">
+      <div class="progress-bar bg-success" role="progressbar" style="width: {{ object.get_ready_percentage }}%" aria-valuenow="{{ object.get_ready_percentage }}" aria-valuemin="0" aria-valuemax="100">{{ object.get_ready_percentage }}%</div>
+    </div>
+  </td>
+</tr>
+{% endfor %}

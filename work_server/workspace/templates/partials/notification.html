@@ -1,0 +1,45 @@
+{% if notification %}
+<div
+  class="alert alert-dismissible fade show position-fixed bottom-0 end-0 m-3 rounded-3 px-3 py-2"
+  style="background-color: darkgray; max-width: 160px">
+  <button
+    type="button"
+    class="btn-close"
+    data-bs-dismiss="alert"
+    onclick="updateProducts()"></button>
+  <h5 style="margin-top: 30px">{{ notification.title }}</h5>
+  <p>{{ notification.message }}</p>
+</div>
+<script>
+  function getCSRFToken() {
+    let name = "csrftoken=";
+    let decodedCookie = decodeURIComponent(document.cookie);
+    let ca = decodedCookie.split(";");
+    for (let i = 0; i < ca.length; i++) {
+      let c = ca[i];
+      while (c.charAt(0) === " ") {
+        c = c.substring(1);
+      }
+      if (c.indexOf(name) === 0) {
+        return c.substring(name.length, c.length);
+      }
+    }
+    return "";
+  }
+  function updateProducts() {
+    $.ajax({
+      url: window.location.pathname,
+      method: "POST",
+      headers: {
+        "X-Requested-With": "XMLNotificationUpdate {{ notification.id }}",
+        "X-CSRFToken": getCSRFToken(),
+      },
+      success: function (data) {
+        if (data.html != "") {
+          $("#notification_block").html(data.html);
+        }
+      },
+    });
+  }
+</script>
+{% endif %}

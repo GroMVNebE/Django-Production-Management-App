@@ -1,0 +1,56 @@
+{% if queued %}
+<div class="default_table_container">
+  <table class="default_table">
+    <tr>
+      <th>Изделие</th>
+      <th>Название</th>
+      {% comment %}
+      <th>До сдачи</th>
+      {% endcomment %}
+    </tr>
+    <tr>
+      <td style="width: 12%"><a href="{{ queued_first.get_queue_url }}" class="table-list">{{ queued_first }}</a></td>
+      <td style="text-align: left">{{ queued_first.name }}</td>
+      {% comment %} {% if queued_first.product %}
+      <td style="width: 15%">{{ queued_first.product.get_deadline_days }}</td>
+      {% else %}
+      <td style="width: 15%">{{ queued_first.part.get_deadline_days }}</td>
+      {% endif %} {% endcomment %}
+    </tr>
+    {% for queue in queued %} {% if queue != queued_first%}
+    <tr>
+      <td style="width: 12%">{{ queue }}</td>
+      <td style="text-align: left">{{ queue.name }}</td>
+      {% comment %} {% if queue.product %}
+      <td style="width: 15%">{{ queue.product.get_deadline_days }}</td>
+      {% else %}
+      <td style="width: 15%">{{ queue.part.get_deadline_days }}</td>
+      {% endif %} {% endcomment %}
+    </tr>
+    {% endif %} {% endfor %}
+  </table>
+</div>
+{% elif products %}
+<div class="default_table_container">
+  <table class="default_table">
+    <tr>
+      <th>Изделие</th>
+      <th>Название</th>
+      {% comment %}
+      <th>До сдачи</th>
+      {% endcomment %}
+    </tr>
+    {% for product in products %}
+    <tr>
+      <td style="width: 12%"><a href="{{ product.get_absolute_url }}" class="table-link">{{ product.get_id }}</a></td>
+      <td style="text-align: left">{{ product.name }}</td>
+      {% comment %}
+      <td style="width: 15%">{{ product.get_deadline_days }}</td>
+      {% endcomment %}
+    </tr>
+    {% endfor %}
+  </table>
+</div>
+{% else %}
+<h2>В данный момент нет доступных к работе изделий</h2>
+{% endif %}

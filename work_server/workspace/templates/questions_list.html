@@ -1,0 +1,48 @@
+{% extends "base_generic.html" %} {% block content %}
+<title>Вопросы</title>
+<header class="header">
+  <div class="container">
+    <div class="header-content">
+      <nav class="nav-menu" id="nav-menu">
+        <a href="/workspace" class="nav-link">Главная <i class="bi bi-house-fill"></i></a>
+        <a href="/workspace/in_work" class="nav-link">В работе <i class="bi bi-wrench-adjustable-circle-fill"></i></a>
+        <a href="/workspace/hidden" class="nav-link">Скрытые <i class="bi bi-eye-slash-fill"></i></a>
+        <a href="/workspace/workers_list" class="nav-link">Работники <i class="bi bi-tools"></i></a>
+        <a href="/workspace/questions" class="nav-link active-link">Вопросы <i class="bi bi-question-circle"></i></a>
+        <a href="/workspace/migrate" class="nav-link">Импорт <i class="bi bi-arrow-bar-down"></i></a>
+      </nav>
+      <div class="nav-toggle" id="nav-toggle">
+        <span class="bar"></span>
+        <span class="bar"></span>
+        <span class="bar"></span>
+      </div>
+    </div>
+  </div>
+</header>
+{% load tz %}
+<div class="centered_page">
+  {% if questions %}
+  <div class="item_block" style="width: 95%; padding-bottom: 20px; border-radius: 0 0 16px 16px">
+    <h1>Вопросы по поводу изготовления изделий</h1>
+    <div class="default_table_container">
+      <table class="default_table">
+        <tr>
+          <th>Изделие</th>
+          <th>Вопрос</th>
+        </tr>
+        {% for question in questions %}
+        <tr>
+          <td style="width: 12%">
+            <a href="{{ question.instance.get_master_url }}" class="table-link">{{ question.instance }}</a>
+          </td>
+          <td style="text-align: left">{{ question.quest|truncatechars:100 }}</td>
+        </tr>
+        {% endfor %}
+      </table>
+    </div>
+    {% else %}
+    <h2>Вопросов не поступало</h2>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

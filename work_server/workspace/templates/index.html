@@ -1,0 +1,10 @@
+{% extends "base_generic.html" %} {% block content %}
+<title>Ошибка!</title>
+<div class="warn_head">
+  <h1>Ой-ой....</h1>
+  {% load static %}
+  <img src="{% static 'images/warning.png' %}" alt="Предупреждающий знак" class="warning_ico" />
+  <p>Похоже, произошла какая-то ошибка, раз Вы оказались здесь</p>
+  <p>Обратитесь к руководству для решения данной проблемы</p>
+</div>
+{% endblock %}

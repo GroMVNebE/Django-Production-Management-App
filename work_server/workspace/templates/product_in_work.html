@@ -1,0 +1,48 @@
+{% extends "base_generic.html" %} {% block content %}
+<title>{{ product }}</title>
+<header class="header">
+  <div class="container">
+    <div class="header-content">
+      <nav class="nav-left">
+        <form method="get" style="display: inline">
+          <button type="submit" name="return" id="return-btn">Назад <i class="bi bi-arrow-return-left"></i></button>
+        </form>
+      </nav>
+    </div>
+  </div>
+</header>
+<div class="centered_page">
+  <div class="item_block" style="width: 95%; border-radius: 0 0 24px 24px; padding-bottom: 30px">
+    <h1>Изделие №{{ product.get_id }}</h1>
+    <p class="product-name">{{ product.name }}</p>
+    {% comment %}
+    <p>
+      <strong><i>Время до сдачи изделия:</i></strong> {{ product.get_deadline_days }}
+    </p>
+    {% endcomment %}
+    <div id="product_in_work_detail">{% include 'partials/product_in_work_details.html' %}</div>
+  </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+  $(document).ready(function () {
+    function updateData() {
+      $.ajax({
+        url: window.location.pathname,
+        headers: {
+          "X-Requested-With": "XMLHttpRequest",
+        },
+        success: function (data) {
+          if (data.html != "") {
+            $("#product_in_work_detail").html(data.html);
+          }
+        },
+      });
+    }
+
+    // Устанавливаем интервал обновления каждые 3 секунды
+    setInterval(updateData, 3000);
+  });
+</script>
+{% endblock %}

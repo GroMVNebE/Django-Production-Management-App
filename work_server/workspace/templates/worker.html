@@ -1,0 +1,63 @@
+{% extends "base_generic.html" %} {% block content %}
+<title>Главная</title>
+<header class="header">
+  <div class="container">
+    <div class="header-content">
+      <nav class="nav-menu-const" id="nav-menu">
+        <a href="/workspace" class="nav-link active-link">Главная <i class="bi bi-house-fill"></i></a>
+        <a href="/workspace/my_products" class="nav-link" style="white-space: nowrap">Мои изделия <i class="bi bi-hammer"></i></a>
+      </nav>
+    </div>
+  </div>
+</header>
+<div class="centered_page">
+  <form method="get" action="">
+    <div class="input-group mb-3" style="margin-top: 0.8rem">
+      <input type="text" name="search" class="form-control" id="search-input" placeholder="Поиск по номеру" autocomplete="off" />
+    </div>
+  </form>
+  <div id="worker_products">{% include 'partials/worker_products.html' %}</div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+  let timer;
+  document.getElementById("search-input").addEventListener("input", function (e) {
+    const searchValue = e.target.value.trim();
+    clearTimeout(timer);
+    timer = setTimeout(function () {
+      $.ajax({
+        url: window.location.pathname,
+        data: {
+          search: searchValue,
+        },
+        headers: {
+          "X-Requested-With": "XMLHttpSearchRequest",
+        },
+        success: function (data) {
+          $("#worker_products").html(data.html);
+        },
+      });
+    }, 300);
+  });
+  $(document).ready(function () {
+    function updateData() {
+      $.ajax({
+        url: window.location.pathname,
+        headers: {
+          "X-Requested-With": "XMLHttpRequest",
+        },
+        success: function (data) {
+          if (data.html != "") {
+            $("#worker_products").html(data.html);
+          }
+        },
+      });
+    }
+
+    // Устанавливаем интервал обновления каждые 5 секунд
+    setInterval(updateData, 5000);
+  });
+</script>
+
+{% endblock %}

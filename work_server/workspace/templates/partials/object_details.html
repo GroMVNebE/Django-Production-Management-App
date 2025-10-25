@@ -1,0 +1,39 @@
+<div class="default_table_container">
+  <table class="default_table">
+    <tr>
+      <th>Изделие</th>
+      <th>Название</th>
+      <th>Статус</th>
+    </tr>
+    {% for product in products %}
+    <tr>
+      <td style="width: 12%">
+        <a href="{{ product.get_master_url }}" class="table-link">{{ product.get_id }}</a>
+      </td>
+      <td style="text-align: left">{{ product.name }}</td>
+      {% if product.get_ava_amount < product.amount %} {% if product.get_completed_amount < product.amount %}
+      <td style="width: 10%">В работе</td>
+      {% else %}
+      <td style="width: 10%">Закончен</td>
+      {% endif %} {% else %}
+      <td style="width: 10%">В очереди</td>
+      {% endif %}
+    </tr>
+    {% endfor %}
+  </table>
+  <div class="control-panel">
+    <form action="" method="post">
+      {% csrf_token %} {% if ready and object.get_ready_percentage != 100 %}
+      <button type="submit" name="stop_obj" id="stop_obj-btn">Приостановить <i class="bi bi-pause-fill"></i></button>
+      {% elif object.get_ready_percentage != 100 %}
+      <button type="submit" name="to_work_obj" id="to_work_obj-btn">В работу <i class="bi bi-play-fill"></i></button>
+      {% endif %} {% if not object.hidden %}
+      <button type="submit" name="hide_obj" id="hide_obj-btn">Скрыть <i class="bi bi-eye-slash-fill"></i></button>
+      {% else %}
+      <button type="submit" name="show_obj" id="hide_obj-btn">Отобразить <i class="bi bi-eye-fill"></i></button>
+      {% endif %} {% if delete %}
+      <button type="submit" name="delete_obj" id="delete_obj-btn">Удалить <i class="bi bi-trash-fill"></i></button>
+      {% endif %}
+    </form>
+  </div>
+</div>

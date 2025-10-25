@@ -1,0 +1,59 @@
+{% extends "base_generic.html" %} {% block content %}
+<div class="corner_nav_bar">
+  <a href="/workspace">На главную</a>
+</div>
+<div class="centered_page">
+  <h1>{{ object.obj_number }}</h1>
+  <div class="states_list">
+    <p style="font-weight: bold">Состояния объекта:</p>
+    <ul>
+      {% for state in states %}
+      <li><strong>{{ state.state.name }}</strong> - <i>{{ state.created_at.isoformat }}</i></li>
+      {% endfor %}
+      <li><strong>Дедлайн</strong> - <i>{{ object.deadline.isoformat }}</i></li>
+    </ul>
+    <form
+      action=""
+      method="post">
+      {% csrf_token %} {{ form }}
+      <input
+        type="submit"
+        value="Добавить/Изменить состояние"
+        name="add_state"
+        id="add_state-btn" />
+    </form>
+  </div>
+  <div class="default_table_container">
+    <table class="default_table">
+      <tr>
+        <th>Изделие</th>
+        <th>Название</th>
+        <th>Статус</th>
+      </tr>
+      {% for product in products %}
+      <tr>
+        <td style="width: 12%"><a href="{{ product.get_master_url }}">{{ product.get_id }}</a></td>
+        <td style="text-align: left">{{ product.name }}</td>
+        {% if product.get_ava_amount != product.amount %}
+        <td style="width: 10%">В работе</td>
+        {% else %}
+        <td style="width: 10%">В очереди</td>
+        {% endif %}
+      </tr>
+      {% endfor %}
+    </table>
+  </div>
+  {% if delete %}
+  <form
+    action=""
+    method="post">
+    {% csrf_token %}
+    <input
+      type="submit"
+      value="Удалить объект"
+      name="delete_obj"
+      id="delete_obj-btn" />
+  </form>
+  {% endif %}
+</div>
+{% endblock %}

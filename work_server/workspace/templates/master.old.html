@@ -1,0 +1,77 @@
+{% extends "base_generic.html" %} {% block content %}
+<div class="centered_page">
+  <div class="nav_bar">
+    <a href="in_work">В работе</a>
+    <a href="workers_list">Работники</a>
+    <a href="questions">Вопросы</a>
+    <a href="migrate">Импорт</a>
+  </div>
+  {% if objects %}
+  <div>
+    <table class="legend_table">
+      <tr>
+        {% for color in legend.values %}
+        <td style="background-color: {{ color }}; color: black; height: 15px;"></td>
+        {% endfor %}
+      </tr>
+      <tr>
+        {% for key in legend.keys %}
+        <td style="color: black; border-left: 1px solid black; border-right: 1px solid black">{{ key }}</td>
+        {% endfor %}
+      </tr>
+    </table>
+  </div>
+  {% endif %} {% if objects %}
+  <div class="objects_table_container">
+    <table class="objects_table">
+      <tr>
+        <th style="left: 0; z-index: 1">ГГГГ-ММ</th>
+        {% for key, value in year_month.items %}
+        <th
+          colspan="{{ value }}"
+          style="top: 0">
+          {{ key }}
+        </th>
+        {% endfor %}
+      </tr>
+      <tr>
+        <th style="left: 0; z-index: 1">ДД</th>
+        {% for day in days.values %}
+        <th style="top: 0; background-color: {{ day.color }}; color: {{ day.text }}">{{ day.value }}</th>
+        {% endfor %}
+      </tr>
+      {% for object in objects %}
+      <tr>
+        <th style="left: 0">
+          <a href="{{object.get_absolute_url}}">{{ object.obj_number }}</a>
+        </th>
+        {% for key, value in datemap.items %} {% if key == object.id %} {% for color in value.values %}
+        <td style="background-color: {{ color }}; border-right: 1px solid black; border-left: 1px solid black"></td>
+        {% endfor %} {% endif %} {% endfor %}
+      </tr>
+      {% endfor %}
+    </table>
+  </div>
+  {% else %}
+  <h2>
+    Данные об объектах ещё не загружены. Используйте вкладку
+    <a
+      href="migrate"
+      style="color: black"
+      >Импорт</a
+    >, чтобы это исправить
+  </h2>
+  {% endif %}
+  <form
+    id="logout-form"
+    method="post"
+    action="{% url 'logout' %}">
+    {% csrf_token %}
+    <button
+      type="submit"
+      id="logout-btn">
+      Выйти
+    </button>
+  </form>
+</div>
+{% endblock %}

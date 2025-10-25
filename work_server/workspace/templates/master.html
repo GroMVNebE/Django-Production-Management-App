@@ -1,0 +1,116 @@
+{% extends 'base_generic.html' %} {% block content %} {% if not hidden %}
+<title>Главная</title>
+{% else %}
+<title>Скрытые</title>
+{% endif %}
+<div class="centered_page">
+  <header class="header">
+    <div class="container">
+      <div class="header-content">
+        <nav class="nav-menu" id="nav-menu">
+          {% if not hidden %}
+          <a href="/workspace" class="nav-link active-link">Главная <i class="bi bi-house-fill"></i></a>
+          {% else %}
+          <a href="/workspace" class="nav-link">Главная <i class="bi bi-house-fill"></i></a>
+          {% endif %}
+          <a href="/workspace/in_work" class="nav-link">В работе <i class="bi bi-wrench-adjustable-circle-fill"></i></a>
+          {% if hidden %}
+          <a href="/workspace/hidden" class="nav-link active-link">Скрытые <i class="bi bi-eye-slash-fill"></i></a>
+          {% else %}
+          <a href="/workspace/hidden" class="nav-link">Скрытые <i class="bi bi-eye-slash-fill"></i></a>
+          {% endif %}
+          <a href="/workspace/workers_list" class="nav-link">Работники <i class="bi bi-tools"></i></a>
+          <a href="/workspace/questions" class="nav-link">
+            Вопросы <i class="bi bi-question-circle"></i>
+            {% if questions and questions < 9 %}
+            <span class="notification-badge">{{ questions }}</span>
+            {% elif questions and questions > 9 %}
+            <span class="notification-badge">9+</span>
+            {% endif %}
+          </a>
+          <a href="/workspace/migrate" class="nav-link">Импорт <i class="bi bi-arrow-bar-down"></i></a>
+        </nav>
+        <div class="nav-toggle" id="nav-toggle">
+          <span class="bar"></span>
+          <span class="bar"></span>
+          <span class="bar"></span>
+        </div>
+      </div>
+    </div>
+  </header>
+  {% if objects %} {% if hidden %}
+  <form method="get" action="">
+    <div class="input-group mb-3" style="margin: 1rem">
+      <input type="text" name="search" class="form-control" id="search-input" placeholder="Поиск по номеру объекта" autocomplete="off" />
+    </div>
+  </form>
+  {% endif %}
+  <div class="objects_table_container" style="max-width: 800px">
+    <table class="objects_table" id="objects_table">
+      <thead>
+        <tr>
+          <th>Объект</th>
+          <th>Готовность</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% include 'partials/objects_table.html' %}
+      </tbody>
+    </table>
+  </div>
+  {% else %} {% if hidden %}
+  <h2>Нет данных о скрытых объектах</h2>
+  {% else %}
+  <h2>
+    Данные об объектах ещё не загружены. Используйте вкладку
+    <a href="migrate" style="color: black"> Импорт </a>, чтобы это исправить
+  </h2>
+  {% endif %} {% endif %}
+</div>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+{% if hidden %}
+<script>
+  let timer;
+  document.getElementById("search-input").addEventListener("input", function (e) {
+    const searchValue = e.target.value.trim();
+    clearTimeout(timer);
+    timer = setTimeout(function () {
+      $.ajax({
+        url: window.location.pathname,
+        data: {
+          search: searchValue,
+        },
+        headers: {
+          "X-Requested-With": "XMLHttpRequest",
+        },
+        success: function (data) {
+          $("#objects_table tbody").html(data);
+        },
+      });
+    }, 300);
+  });
+</script>
+{% else %}
+<script>
+  $(document).ready(function () {
+    function updateProducts() {
+      $.ajax({
+        url: window.location.pathname,
+        headers: {
+          "X-Requested-With": "XMLHttpRequest",
+        },
+        success: function (data) {
+          if (data.html != "") {
+            $("#objects_table tbody").html(data.html);
+            if (data.questions > 0) {
+              const link = (document.getElementById("question_link").style.backgroundColor = "chocolate");
+            }
+          }
+        },
+      });
+    }
+    // Устанавливаем интервал обновления каждые 5 секунд
+    setInterval(updateProducts, 5000);
+  });
+</script>
+{% endif %} {% endblock %}

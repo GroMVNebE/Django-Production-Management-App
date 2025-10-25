@@ -1,0 +1,101 @@
+{% extends "base_generic.html" %} {% block content %}
+<title>Работники</title>
+<header class="header">
+  <div class="container">
+    <div class="header-content">
+      <nav class="nav-menu" id="nav-menu">
+        <a href="/workspace" class="nav-link">Главная <i class="bi bi-house-fill"></i></a>
+        <a href="/workspace/in_work" class="nav-link">В работе <i class="bi bi-wrench-adjustable-circle-fill"></i></a>
+        <a href="/workspace/hidden" class="nav-link">Скрытые <i class="bi bi-eye-slash-fill"></i></a>
+        <a href="/workspace/workers_list" class="nav-link active-link">Работники <i class="bi bi-tools"></i></a>
+        <a href="/workspace/questions" class="nav-link">
+          Вопросы <i class="bi bi-question-circle"></i>
+          {% if questions and questions < 9 %}
+          <span class="notification-badge">{{ questions }}</span>
+          {% elif questions and questions > 9 %}
+          <span class="notification-badge">9+</span>
+          {% endif %}
+        </a>
+        <a href="/workspace/migrate" class="nav-link">Импорт <i class="bi bi-arrow-bar-down"></i></a>
+      </nav>
+      <div class="nav-toggle" id="nav-toggle">
+        <span class="bar"></span>
+        <span class="bar"></span>
+        <span class="bar"></span>
+      </div>
+    </div>
+  </div>
+</header>
+<div class="centered_page">
+  {% if not form %}
+  <div class="month-navigator">
+    <a href="?date={{ prev|date:'Y-m-d' }}" class="btn-prev-month"><i class="bi bi-arrow-left"></i></a>
+    <span class="current-month" style="margin: 0.4rem">{{ current_date|date:"F Y" }}</span>
+    <a href="?date={{ next|date:'Y-m-d' }}" class="btn-next-month"><i class="bi bi-arrow-right"></i></a>
+  </div>
+  {% if workers %}
+  <div class="default_table_container">
+    <table class="default_table">
+      <tr>
+        <th>Работник</th>
+        <th>Произведено изделий</th>
+        <th>Выплата</th>
+      </tr>
+      {% for worker in workers.values %}
+      <tr>
+        <td style="text-align: left">
+          <a href="{{ worker.worker.get_absolute_url }}" class="table-link">{{ worker.worker }}</a>
+        </td>
+        <td style="width: 15%">{{ worker.completed }}</td>
+        <td style="width: 12%">{{ worker.payment }} руб.</td>
+      </tr>
+      {% endfor %}
+      <tr>
+        <th style="text-align: left">Всего</th>
+        <td style="background-color: rgba(0, 0, 0, 0.2)">{{ completed_products }}</td>
+        <td style="background-color: rgba(0, 0, 0, 0.2)">{{ payment }} руб.</td>
+      </tr>
+    </table>
+  </div>
+  {% else %}
+  <h2>Нет данных о произведённых изделиях за этот месяц</h2>
+  {% endif %} {% if all_workers %}
+  <h2>Список всех работников</h2>
+  <div class="default_table_container">
+    <table class="default_table">
+      <tr>
+        <th>Работник</th>
+        <th>Произведено изделий</th>
+        <th>Выплата</th>
+      </tr>
+      {% for worker in all_workers %}
+      <tr>
+        <td style="text-align: left">
+          <a href="{{ worker.get_absolute_url }}" class="table-link">{{ worker }}</a>
+        </td>
+        <td style="width: 15%">{{ worker.get_all_completed_amount }}</td>
+        <td style="width: 12%">{{ worker.get_all_payment }} руб.</td>
+      </tr>
+      {% endfor %}
+      <tr>
+        <th style="text-align: left">Всего</th>
+        <td style="background-color: rgba(0, 0, 0, 0.2)">{{ all_completed }}</td>
+        <td style="background-color: rgba(0, 0, 0, 0.2)">{{ all_payment }} руб.</td>
+      </tr>
+    </table>
+  </div>
+  {% else %}
+  <h2>Ещё нет авторизованных работников</h2>
+  {% endif %} {% endif %}
+  <form action="" method="post" style="display: inline" autocomplete="off">
+    {% csrf_token %} {% if form %}
+    <div id="add_user_form">
+      {{ form }}
+      <button type="submit" name="create_user" id="create_user-btn">Сохранить <i class="bi bi-floppy-fill"></i></button>
+    </div>
+    {% else %}
+    <button type="submit" name="add_user" id="add_user-btn">Добавить работника <i class="bi bi-person-plus-fill"></i></button>
+    {% endif %}
+  </form>
+</div>
+{% endblock %}

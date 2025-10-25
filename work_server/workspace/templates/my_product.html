@@ -1,0 +1,69 @@
+{% extends "base_generic.html" %} {% block content %}
+<title>{{ instance }}</title>
+<header class="header">
+  <div class="container">
+    <div class="header-content">
+      <nav class="nav-left">
+        <a href="/workspace/my_products" class="nav-link">Мои изделия <i class="bi bi-hammer"></i></a>
+      </nav>
+    </div>
+  </div>
+</header>
+<div class="centered_page">
+  <div class="item_block">
+    <h1>{% if instance.product %} Изделие №{{ instance.product.get_id }} {% else %} Часть №{{ instance.part.get_id }} {% endif %}</h1>
+    <p class="product-name">{% if instance.product %} {{ instance.product.name }} {% else %} {{ instance.part.name }} {% endif %}</p>
+    {% comment %}
+    <p>
+      <strong><i>Время до сдачи изделия:</i></strong>
+    </p>
+    <p>{% if instance.product %} {{ instance.product.get_deadline_days }} {% else %} {{ instance.part.get_deadline_days }} {% endif %}</p>
+    {% endcomment %} {% if instance.product %} {% if instance.product.description %}
+    <p>{{ instance.product.description }}</p>
+    {% endif %} {% else %} {% if instance.part.product.description %}
+    <p>{{ instance.part.product.description }}</p>
+    {% endif %} {% endif %}
+    <div style="margin-top: 2rem">
+      <p style="font-size: x-large">Изготавливается: <strong>{{ instance.amount }}</strong></p>
+    </div>
+    <div class="questions">
+      <h2>Вопросы по изготовлению изделия</h2>
+      <div id="questions_list">{% include 'partials/questions_list.html' %}</div>
+      <form action="" method="post" style="font-weight: 500; font-size: large" autocomplete="off">
+        {% csrf_token %}
+        <div style="display: flex; justify-content: center; align-items: center">
+          {{ form }}
+          <button type="submit" name="send_question" id="quest-btn">Отправить <i class="bi bi-arrow-return-right"></i></button>
+        </div>
+      </form>
+    </div>
+    <form method="post">
+      {% csrf_token %}
+      <button type="submit" name="finish_product" id="finish-btn" onclick="return confirm('Вы хотите закончить работу над изделием? После нажатия Вы не сможете вернуться к этому изделию');">Закончить <i class="bi bi-save"></i></button>
+      <button type="submit" name="cancel_product" id="cancel-btn" onclick="return confirm('Вы хотите отменить работу над изделием? После нажатия Вы не сможете вернуться к этому изделию');">Отменить <i class="bi bi-backspace-fill"></i></button>
+    </form>
+  </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+  $(document).ready(function () {
+    function updateData() {
+      $.ajax({
+        url: window.location.pathname,
+        headers: {
+          "X-Requested-With": "XMLHttpRequest",
+        },
+        success: function (data) {
+          if (data.html != "") {
+            $("#questions_list").html(data.html);
+          }
+        },
+      });
+    }
+
+    // Устанавливаем интервал обновления каждые 1.5 секунды
+    setInterval(updateData, 1500);
+  });
+</script>
+{% endblock %}

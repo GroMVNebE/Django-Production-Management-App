@@ -1,0 +1,47 @@
+{% if product.description %}
+<p>{{ product.description }}</p>
+{% endif %}
+<div class="to-work-form-container">
+  <form action="" method="post">
+    {% csrf_token %}
+    <table>
+      {{ form.as_table }}
+    </table>
+    <button type="submit" id="work-btn">Принять в работу <i class="bi bi-hammer"></i></button>
+  </form>
+</div>
+{% load mathfilters %}
+<div class="default_table_container">
+  <table class="default_table">
+    <tr>
+      <th>Наименование</th>
+      <th>Доступно</th>
+    </tr>
+    {% if product.get_ava_amount > 0 %}
+    <tr>
+      <td><strong>{{ product.name }}</strong> <i>(Всё изделие)</i></td>
+      <td>{{ product.get_ava_amount }} шт.</td>
+    </tr>
+    {% endif %} {% for part in parts %} {% if part.get_ava_amount > 0 %}
+    <tr>
+      <td>{{ part.name }}</td>
+      <td>{{ part.get_ava_amount }} шт.</td>
+    </tr>
+    {% endif %} {% endfor %}
+  </table>
+</div>
+<script>
+  var modelMinQuantities = {
+    {% for key, value in choices.items %}
+    "{{ key }}": {{ value }},
+    {% endfor %}
+  };
+  document.getElementById('id_creation').addEventListener('change', function() {
+    const selectedCreation = this.value;
+    const quantityField = document.getElementById('id_amount');
+
+    if (selectedCreation in modelMinQuantities) {
+      quantityField.value = modelMinQuantities[selectedCreation];
+    }
+  });
+</script>

@@ -1,0 +1,44 @@
+{% extends "base_generic.html" %} {% block content %}
+<title>Мои изделия</title>
+<header class="header">
+  <div class="container">
+    <div class="header-content">
+      <nav class="nav-menu-const" id="nav-menu">
+        <a href="/workspace" class="nav-link">Главная <i class="bi bi-house-fill"></i></a>
+        <a href="/workspace/my_products" class="nav-link active-link" style="white-space: nowrap">Мои изделия <i class="bi bi-hammer"></i></a>
+      </nav>
+    </div>
+  </div>
+</header>
+<div class="centered_page">
+  {% if instances %}
+  <div class="default_table_container">
+    <table class="default_table">
+      <tr>
+        <th>Изделие</th>
+        <th>Название</th>
+        <th>Кол-во</th>
+        {% comment %}
+        <th>Осталось дней</th>
+        {% endcomment %}
+      </tr>
+      {% for instance in instances %}
+      <tr>
+        <td style="width: 12%">
+          <a href="{{ instance.get_absolute_url }}" class="table-link"> {% if instance.product %} {{ instance.product.get_id }} {% else %} {{ instance.part.product.get_id }} {% endif %} </a>
+        </td>
+        <td style="text-align: left">{% if instance.product %} {{ instance.product.name }} {% else %} {{ instance.part.name }} {% endif %}</td>
+        <td style="width: 7%">{{ instance.amount }}</td>
+        {% comment %}
+        <td style="width: 15%">{% if instance.product %} {{ instance.product.get_deadline_days }} {% else %} {{ instance.part.product.get_deadline_days }} {% endif %}</td>
+        {% endcomment %}
+      </tr>
+      {% endfor %}
+    </table>
+  </div>
+  {% else %}
+  <h1>У Вас ещё нет изделий в работе</h1>
+  <p>Перейдите на главную страницу и выберите любое изделие</p>
+  {% endif %}
+</div>
+{% endblock %}

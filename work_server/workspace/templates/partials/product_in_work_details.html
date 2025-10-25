@@ -1,0 +1,126 @@
+<p class="product-description">
+  {% if product.description %} {{ product.description }} {% else %} <em>Примечание не указано</em> {% endif %} {% if not edit_mode %}
+  <button onclick="location.href='?edit=1'" class="edit-btn">
+    <i class="bi bi-pencil-square"></i>
+  </button>
+  {% endif %}
+</p>
+{% load mathfilters %} {% if in_work_products or in_work_parts %}
+<h2>В работе</h2>
+<div class="default_table_container">
+  <table class="default_table">
+    <tr>
+      <th>Работник</th>
+      <th>Часть</th>
+      <th style="text-align: center">Кол-во</th>
+      <th>Стоимость</th>
+    </tr>
+    {% for in_work_product in in_work_products %}
+    <tr>
+      <td><a href="{{ in_work_product.worker.get_absolute_url }}" class="table-link">{{ in_work_product.worker }}</a></td>
+      <td>Всё изделие</td>
+      <td style="width: 7%; text-align: center">{{ in_work_product.amount }} шт.</td>
+      <td style="width: 17%">{{ in_work_product.get_price }} руб.</td>
+    </tr>
+    {% endfor %} {% for in_work_part in in_work_parts %}
+    <tr>
+      <td><a href="{{ in_work_part.worker.get_absolute_url }}" class="table-link">{{ in_work_part.worker }}</a></td>
+      <td>{{ in_work_part.part.name }}</td>
+      <td style="width: 7%; text-align: center">{{ in_work_part.amount }} шт.</td>
+      <td style="width: 17%">{{ in_work_part.get_price }} руб.</td>
+    </tr>
+    {% endfor %}
+  </table>
+</div>
+{% endif %} {% if queued_products or queued_parts %}
+<h2>В очереди</h2>
+<div class="default_table_container">
+  <table class="default_table">
+    <tr>
+      <th>Работник</th>
+      <th>Часть</th>
+      <th style="text-align: center">Кол-во</th>
+      <th>Стоимость</th>
+    </tr>
+    {% for queued_product in queued_products %}
+    <tr>
+      <td><a href="{{ queued_product.worker.get_absolute_url }}" class="table-link">{{ queued_product.worker }}</a></td>
+      <td>Всё изделие</td>
+      <td style="width: 7%; text-align: center">{{ queued_product.amount }} шт.</td>
+      <td style="width: 17%">{{ queued_product.get_price }} руб.</td>
+    </tr>
+    {% endfor %} {% for queued_part in queued_parts %}
+    <tr>
+      <td><a href="{{ queued_part.worker.get_absolute_url }}" class="table-link">{{ queued_part.worker }}</a></td>
+      <td>{{ queued_part.part.name }}</td>
+      <td style="width: 7%; text-align: center">{{ queued_part.amount }} шт.</td>
+      <td style="width: 17%">{{ queued_part.get_price }} руб.</td>
+    </tr>
+    {% endfor %}
+  </table>
+</div>
+{% endif %} {% if completed_products or completed_parts %}
+<h2>Изготовлено</h2>
+<div class="default_table_container">
+  <table class="default_table">
+    <tr>
+      <th>Работник</th>
+      <th>Часть</th>
+      <th style="text-align: center">Кол-во</th>
+      <th>Стоимость</th>
+    </tr>
+    {% for completed_product in completed_products %}
+    <tr>
+      <td><a href="{{ completed_product.worker.get_absolute_url }}" class="table-link">{{ completed_product.worker }}</a></td>
+      <td>Всё изделие</td>
+      <td style="width: 7%; text-align: center">{{ completed_product.amount }} шт.</td>
+      <td style="width: 17%">{{ completed_product.get_price }} руб.</td>
+    </tr>
+    {% endfor %} {% for completed_part in completed_parts %}
+    <tr>
+      <td><a href="{{ completed_part.worker.get_absolute_url }}" class="table-link">{{ completed_part.worker }}</a></td>
+      <td>{{ completed_part.part.name }}</td>
+      <td style="width: 7%; text-align: center">{{ completed_part.amount }} шт.</td>
+      <td style="width: 17%">{{ completed_part.get_price }} руб.</td>
+    </tr>
+    {% endfor %}
+  </table>
+</div>
+{% endif %} {% if product.get_ava_parts_amount > 0 or product.get_ava_amount > 0 %}
+<h2>Доступно</h2>
+<div class="default_table_container">
+  <table class="default_table">
+    <tr>
+      <th>Часть</th>
+      <th style="text-align: center">Кол-во</th>
+      <th>Стоимость</th>
+    </tr>
+    {% if product.get_ava_amount > 0 %}
+    <tr>
+      <td>Всё изделие</td>
+      <td style="width: 7%; text-align: center">{{ product.get_ava_amount }} шт.</td>
+      <td style="width: 17%">{{ product.price|mul:product.get_ava_amount }} руб.</td>
+    </tr>
+    {% endif %} {% if product.get_ava_parts_amount > 0 %} {% for part in parts %} {% if part.get_ava_amount > 0 %}
+    <tr>
+      <td>{{ part.name }}</td>
+      <td style="width: 7%; text-align: center">{{ part.get_ava_amount }}</td>
+      <td style="width: 17%">{{ part.price|mul:part.get_ava_amount }} руб.</td>
+    </tr>
+    {% endif %} {% endfor %} {% endif %}
+  </table>
+</div>
+{% endif %} {% if edit_mode %}
+<form action="" method="post">
+  {% csrf_token %} {{ editform }}
+  <button type="submit" name="save" id="save-description-btn">Сохранить <i class="bi bi-floppy-fill"></i></button>
+  <button type="submit" name="cancel" id="cancel-btn">Отмена <i class="bi bi-x-lg"></i></button>
+</form>
+{% else %} {% if queueform %}
+<div class="add-to-queue-form-container">
+  <form action="" method="post">
+    {% csrf_token %} {{ queueform }}
+    <button type="submit" name="add_to_queue" id="add-to-queue-btn">В очередь<i class="bi bi-hourglass-split"></i></button>
+  </form>
+</div>
+{% endif %} {% endif %}

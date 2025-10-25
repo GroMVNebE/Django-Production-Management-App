@@ -1,0 +1,62 @@
+{% extends "base_generic.html" %} {% block content %}
+<title>Настройки чёрного списка</title>
+<header class="header">
+  <div class="container">
+    <div class="header-content">
+      <nav class="nav-menu" id="nav-menu">
+        <a href="/workspace" class="nav-link">Главная <i class="bi bi-house-fill"></i></a>
+        <a href="/workspace/in_work" class="nav-link">В работе <i class="bi bi-wrench-adjustable-circle-fill"></i></a>
+        <a href="/workspace/hidden" class="nav-link">Скрытые <i class="bi bi-eye-slash-fill"></i></a>
+        <a href="/workspace/workers_list" class="nav-link">Работники <i class="bi bi-tools"></i></a>
+        <a href="/workspace/questions" class="nav-link">
+          Вопросы <i class="bi bi-question-circle"></i>
+          {% if questions and questions < 9 %}
+          <span class="notification-badge">{{ questions }}</span>
+          {% elif questions and questions > 9 %}
+          <span class="notification-badge">9+</span>
+          {% endif %}
+        </a>
+        <a href="/workspace/migrate" class="nav-link">Импорт <i class="bi bi-arrow-bar-down"></i></a>
+        <a href="/workspace/blacklist" class="nav-link active-link">Настройки <i class="bi bi-gear-fill"></i></a>
+      </nav>
+      <div class="nav-toggle" id="nav-toggle">
+        <span class="bar"></span>
+        <span class="bar"></span>
+        <span class="bar"></span>
+      </div>
+    </div>
+  </div>
+</header>
+<div class="centered_page">
+  <h1>Список игнорируемых частей</h1>
+  <p>В данном списке находятся <i>маски</i> названий частей, которые будут игнорироваться. Если название части соответствует одной из указанных масок, изделие не будет разбито на части</p>
+  {% if blacklist %}
+  <div class="list-group mx-auto" style="max-width: 400px">
+    {% for value in blacklist %}
+    <div class="list-group-item d-flex justify-content-between align-items-center">
+      <span>{{ value }}</span>
+      <form method="post" action="" class="d-inline">
+        {% csrf_token %}
+        <input type="hidden" name="delete" value="{{ value.id }}" />
+        <button type="submit" class="btn btn-danger btn-sm">
+          <i class="bi bi-trash"></i>
+        </button>
+      </form>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p>Не найдено значений из чёрного списка</p>
+  {% endif %} {% if form %}
+  <form action="" method="post" class="d-flex justify-content-center">
+    {% csrf_token %}
+    <div class="input-group" style="max-width: 400px">
+      <input type="text" name="{{ form.blacklist_value.name }}" id="{{ form.blacklist_value.id_for_label }}" class="form-control" placeholder="{{ form.blacklist_value.label }}" value="{{ form.blacklist_value.value|default:'' }}" />
+      <button type="submit" class="btn btn-success" name="add_value">
+        <i class="bi bi-capslock"></i>
+      </button>
+    </div>
+  </form>
+  {% endif %}
+</div>
+{% endblock %}

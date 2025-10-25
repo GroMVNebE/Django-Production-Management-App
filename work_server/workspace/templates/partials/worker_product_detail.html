@@ -1,0 +1,42 @@
+<h1>{{ product.get_id }} {{ product.name }}</h1>
+{% comment %}
+<p>
+  <strong><i>Время до сдачи изделия:</i></strong> {{ product.get_deadline_days }}
+</p>
+{% endcomment %}
+<p>
+  <strong><i>Кол-во изделий, доступных к работе:</i></strong> {{ product.get_ava_amount }}
+</p>
+<p>
+  <strong><i>Примечание:</i></strong>
+</p>
+{% if product.description %}
+<p>{{ product.description }}</p>
+{% else %}
+<p>Примечание не указано</p>
+{% endif %}
+<form action="" method="post">
+  {% csrf_token %}
+  <table>
+    {{ form.as_table }}
+  </table>
+  <input type="submit" value="Взять в работу" id="work-btn" />
+</form>
+<div class="default_table_container">
+  <table class="default_table">
+    <tr>
+      <th>Наименование</th>
+      <th>Доступно</th>
+    </tr>
+    <tr>
+      <td><strong>{{ product.name }}</strong> <i>(Всё изделие)</i></td>
+      <td>{{ product.get_ava_amount }}</td>
+    </tr>
+    {% for part in parts %}
+    <tr>
+      <td>{{ part.name }}</td>
+      <td>{{ part.get_ava_amount }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+</div>

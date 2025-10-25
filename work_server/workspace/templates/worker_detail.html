@@ -1,0 +1,83 @@
+{% extends "base_generic.html" %} {% block content %}
+<title>{{ worker }}</title>
+<header class="header">
+  <div class="container">
+    <div class="header-content">
+      <nav class="nav-left" id="nav-menu">
+        <a href="/workspace/workers_list" class="nav-link">Работники <i class="bi bi-tools"></i></a>
+      </nav>
+    </div>
+  </div>
+</header>
+<div class="centered_page">
+  <h1>Подробности {{ worker }}</h1>
+  <h2>За всё время</h2>
+  <p><strong>Изготовлено:</strong> {{ worker.get_all_completed_amount }} шт.</p>
+  <p><strong>Заработано:</strong> {{ worker.get_all_payment }} руб.</p>
+  <h2>За выбранный месяц</h2>
+  <div class="month-navigator">
+    <a href="?date={{ prev|date:'Y-m-d' }}" class="btn-prev-month"><i class="bi bi-arrow-left"></i></a>
+    <span class="current-month" style="margin: 0.4rem">{{ current_date|date:"F Y" }}</span>
+    <a href="?date={{ next|date:'Y-m-d' }}" class="btn-next-month"><i class="bi bi-arrow-right"></i></a>
+  </div>
+  {% if products %}
+  <div class="default_table_container">
+    <table class="default_table">
+      <tr>
+        <th>Изделие</th>
+        <th>Изготовлено</th>
+        <th>Выплата</th>
+      </tr>
+      {% for product in products %}
+      <tr>
+        <td style="width: 12%">{{ product }}</td>
+        <td style="width: 7%">{{ product.amount }} шт.</td>
+        <td style="width: 12%">{{ product.get_price }} руб.</td>
+      </tr>
+      {% endfor %}
+      <tr>
+        <th style="text-align: center">Всего:</th>
+        <td style="background-color: rgba(0, 0, 0, 0.2)">{{ completed_amount }} шт.</td>
+        <td style="background-color: rgba(0, 0, 0, 0.2)">{{ payment }} руб</td>
+      </tr>
+    </table>
+  </div>
+  {% else %}
+  <p>Нет данных о произведённых изделиях за этот месяц</p>
+  {% endif %} {% if in_work %}
+  <h2>Сейчас изготавливает:</h2>
+  <div class="default_table_container">
+    <table class="default_table">
+      <tr>
+        <th>Изделие</th>
+        <th>Кол-во</th>
+        <th>Выплата</th>
+        <th>Начал</th>
+        {% comment %}
+        <th>Осталось дней</th>
+        {% endcomment %}
+      </tr>
+      {% for instance in in_work %}
+      <tr>
+        <td style="width: 12%">{% if instance.product %} {{ instance.product.get_id }} {% else %} {{ instance.part }} {% endif %}</td>
+        <td style="width: 7%">{{ instance.amount }} шт.</td>
+        <td style="width: 12%">{{ instance.get_price }} руб.</td>
+        {% if instance.started %}
+        <td style="width: 7%">{{ instance.started|date:"j E Y" }}</td>
+        {% else %}
+        <td style="width: 7%">В очереди</td>
+        {% endif %} {% comment %}
+        <td style="width: 15%">{% if instance.product %} {{ instance.product.get_deadline_days }} {% else %} {{ instance.part.get_deadline_days }} {% endif %}</td>
+        {% endcomment %}
+      </tr>
+      {% endfor %}
+    </table>
+  </div>
+  {% endif %} {% if worker.worker %}
+  <form action="" method="post" style="display: inline">
+    {% csrf_token %}
+    <button type="submit" name="delete_user" id="delete_user-btn" onclick="return confirm('Вы действительно хотите удалить пользователя? Это действие невозможно отменить');">Удалить работника <i class="bi bi-trash"></i></button>
+  </form>
+  {% endif %}
+</div>
+{% endblock %}
