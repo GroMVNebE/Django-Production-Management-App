@@ -1,4 +1,4 @@
-{% extends "base_generic.html" %} {% block content %}
+{% extends "base_generic_auth.html" %} {% block content %}
 <div id="login_page">
   <title>Авторизация</title>
   <h1>Авторизация:</h1>
@@ -7,9 +7,7 @@
   {% endif %} {% if next %} {% if user.is_authenticated %}
   <p class="error_txt">У Вас нет доступа к этой странице!</p>
   {% endif %} {% endif %}
-  <form
-    method="post"
-    action="{% url 'login' %}">
+  <form method="post" action="{% url 'login' %}">
     {% csrf_token %}
     <table id="input_table">
       <tr>
@@ -21,14 +19,8 @@
         <td>{{ form.password }}</td>
       </tr>
     </table>
-    <input
-      type="submit"
-      value="Авторизоваться"
-      id="login-btn" />
-    <input
-      type="hidden"
-      name="next"
-      value="{{ next }}" />
+    <input type="submit" value="Авторизоваться" id="login-btn" />
+    <input type="hidden" name="next" value="{{ next }}" />
   </form>
 </div>
 {% endblock %}

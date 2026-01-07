@@ -42,41 +42,5 @@
         }
       });
     });
-    $(document).ready(function () {
-      function updateProducts() {
-        $.ajax({
-          url: window.location.pathname,
-          headers: {
-            "X-Requested-With": "XMLNotificationUpdate",
-          },
-          success: function (data) {
-            if (data.html != "") {
-              $("#notification_block").html(data.html);
-              if (!("Notification" in window)) {
-                // Check if the browser supports notifications
-              } else if (Notification.permission === "granted") {
-                // Check whether notification permissions have already been granted;
-                // if so, create a notification
-                const notification = new Notification(data.message, {
-                  timestamp: data.time,
-                });
-              } else if (Notification.permission !== "denied") {
-                // We need to ask the user for permission
-                Notification.requestPermission().then((permission) => {
-                  // If the user accepts, let's create a notification
-                  if (permission === "granted") {
-                    const notification = new Notification(data.message, {
-                      timestamp: data.time,
-                    });
-                  }
-                });
-              }
-            }
-          },
-        });
-      }
-      // Устанавливаем интервал обновления каждые 5 секунд
-      setInterval(updateProducts, 5000);
-    });
   </script>
 </html>
