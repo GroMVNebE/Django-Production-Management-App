@@ -1,0 +1,5 @@
+Запустить консоль -> ввести команду:
+py -3 manage.py makemigrations	– после изменений в models.py/глобальных изменений
+py -3 manage.py migrate		– после изменений в models.py/глобальных изменений
+
+py -3 manage.py runserver	– для запуска локального сервера

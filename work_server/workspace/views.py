@@ -564,6 +564,11 @@ def product_detail_view(request: HttpRequest, pk: int) -> JsonResponse | HttpRes
                     # Сбрасываем доступное количество изделия для последующего обновления
                     product.ava_amount = None
                     product.save()
+                    # Сбрасываем доступное количество всех частей изделия для последующего обновления
+                    parts = Part.objects.filter(product=product)
+                    for part in parts:
+                        part.ava_amount = None
+                        part.save()
                     # Если запись уже есть, обновляем её (увеличилось кол-во изделий в работе)
                     wip_product = CreationInstance.objects.filter(
                         worker=worker_data, product=product, status="IN_WORK").first()
@@ -574,6 +579,9 @@ def product_detail_view(request: HttpRequest, pk: int) -> JsonResponse | HttpRes
                     else:
                         CreationInstance.objects.create(
                             product=product, worker=worker_data, amount=amount, status='IN_WORK', started=timezone.now().date())
+                    # Обновляем доступное количество всех частей изделия
+                    for part in parts:
+                        part.get_ava_amount()
                     # Обновляем доступное количество изделия
                     product.get_ava_amount()
                     # Возвращаем пользователя на главную страницу
@@ -604,8 +612,11 @@ def product_detail_view(request: HttpRequest, pk: int) -> JsonResponse | HttpRes
                     # Сбрасываем доступное количество для последующего обновления
                     selected_part.product.ava_amount = None
                     selected_part.product.save()
-                    selected_part.ava_amount = None
-                    selected_part.save()
+                    # Сбрасываем доступное количество всех частей изделия для последующего обновления
+                    parts = Part.objects.filter(product=selected_part.product)
+                    for part in parts:
+                        part.ava_amount = None
+                        part.save()
                     # Если запись уже есть, обновляем её (увеличилось кол-во частей в работе)
                     wip_part = CreationInstance.objects.filter(
                         worker=worker_data, part=selected_part).first()
@@ -615,9 +626,10 @@ def product_detail_view(request: HttpRequest, pk: int) -> JsonResponse | HttpRes
                     # Иначе создаём новую запись
                     else:
                         CreationInstance.objects.create(
-                            part=part, worker=worker_data, amount=amount, status='IN_WORK', started=timezone.now().date())
-                    # Обновляем доступное количество части и изделия
-                    selected_part.get_ava_amount()
+                            part=selected_part, worker=worker_data, amount=amount, status='IN_WORK', started=timezone.now().date())
+                    # Обновляем доступное количество частей и изделия
+                    for part in parts:
+                        part.get_ava_amount()
                     selected_part.product.get_ava_amount()
                     # Возвращаем пользователя на главную страницу
                     return HttpResponseRedirect('/workspace')
@@ -751,10 +763,9 @@ def my_product_view(request: HttpRequest, pk: int) -> HttpResponse | JsonRespons
             # Сбрасываем готовность объекта для последующего обновления
             object.ready_percentage = None
             object.save()
-            # Сбрасываем доступное количество изделия/части и завершённого количества изделия
-            part = None
-            if instance.part:
-                part = instance.part
+            # Сбрасываем доступное количество изделия/частей и завершённого количества изделия
+            parts = Part.objects.filter(product=instance.product)
+            for part in parts:
                 part.ava_amount = None
                 part.save()
             product = instance.product if instance.product else instance.part.product
@@ -774,8 +785,8 @@ def my_product_view(request: HttpRequest, pk: int) -> HttpResponse | JsonRespons
                 instance.status = 'COMPLETED'
                 instance.completed = timezone.now().date()
                 instance.save()
-            # Если изготавливалась часть - обновляем доступное количество части
-            if part:
+            # Обновляем доступное кол-во частей
+            for part in parts:
                 part.get_ava_amount()
             # Обновляем доступное и завершённое количество изделия и готовность объекта
             product.get_ava_amount()
@@ -793,8 +804,16 @@ def my_product_view(request: HttpRequest, pk: int) -> HttpResponse | JsonRespons
             # Сбрасываем доступное количество изделия для последующего обновления
             product = instance.product if instance.product else instance.part.product
             product.ava_amount = None
+            # Сбрасываем доступное кол-во частей для обновления
+            parts = Part.objects.filter(product=instance.product)
+            for part in parts:
+                part.ava_amount = None
+                part.save()
             # Удаляем запись об изготовлении изделия
             instance.delete()
+            # Обновляем доступное кол-во частей
+            for part in parts:
+                part.get_ava_amount()
             # Обновляем доступное количество изделия
             product.get_ava_amount()
             # Возвращаем пользователя на страницу со списком его изделий
@@ -1049,11 +1068,11 @@ def in_work_view(request: HttpRequest) -> HttpResponse | JsonResponse | HttpResp
         object = instance.product.object if instance.product else instance.part.product.object
         object.ready_percentage = None
         object.save()
-        # Сбрасываем доступное количество изделия/части и завершённого количества изделия
-        part = None
-        if instance.part:
-            part = instance.part
+        # Сбрасываем доступное количество изделия/частей и завершённого количества изделия
+        parts = Part.objects.filter(product=instance.product)
+        for part in parts:
             part.ava_amount = None
+            part.save()
         product = instance.product if instance.product else instance.part.product
         product.ava_amount = None
         product.completed_amount = None
@@ -1071,8 +1090,8 @@ def in_work_view(request: HttpRequest) -> HttpResponse | JsonResponse | HttpResp
             instance.status = 'COMPLETED'
             instance.completed = timezone.now().date()
             instance.save()
-        # Обновляем доступное и завершённое количество изделия, готовность объекта
-        if part:
+        # Обновляем доступное и завершённое количество изделия/частей, готовность объекта
+        for part in parts:
             part.get_ava_amount()
         product.get_ava_amount()
         product.get_completed_amount()
@@ -1158,9 +1177,30 @@ def workers_list_view(request: HttpRequest) -> HttpResponse | JsonResponse | Htt
     end = (start + relativedelta(months=1)
            ).replace(day=1) - relativedelta(days=1)
     # Получаем данные о всех работниках
-    workers_data = WorkerData.objects.all()
+    workers_data = WorkerData.objects.all().select_related('worker')
+    month_creations = CreationInstance.objects.filter(
+        completed__gte=start,
+        completed__lte=end,
+        status='COMPLETED'
+    ).select_related('product', 'part')
+    all_creations = CreationInstance.objects.filter(
+        status='COMPLETED'
+    ).select_related('product', 'part')
+    from collections import defaultdict
+    month_data_by_worker = defaultdict(lambda: {'completed': 0, 'payment': 0})
+    for creation in month_creations:
+        if creation.worker_id:
+            month_data_by_worker[creation.worker_id]['completed'] += creation.amount
+            month_data_by_worker[creation.worker_id]['payment'] += creation.get_price()
+
+    total_data_by_worker = defaultdict(lambda: {'completed': 0, 'payment': 0})
+    for creation in all_creations:
+        if creation.worker_id:
+            total_data_by_worker[creation.worker_id]['completed'] += creation.amount
+            total_data_by_worker[creation.worker_id]['payment'] += creation.get_price()
     # Создаём пустой словарь для сбора данных о работниках
     workers = dict()
+    all_workers_with_stats = []
     # Создаём переменную для хранения общего кол-ва произведённых изделий
     all_completed = 0
     # Создаём переменную для хранения общей суммы выплат
@@ -1171,17 +1211,28 @@ def workers_list_view(request: HttpRequest) -> HttpResponse | JsonResponse | Htt
     payment = 0
     # Собираем данные о всех работниках
     for worker in workers_data:
-        # Если работник произвёл какие-либо изделия за выбранный месяц
-        if worker.get_completed(start, end) > 0:
-            # Добавляем в словарь данные о нём: его данные, кол-во произведённых изделий, сумму выплат
-            workers[worker] = {"worker": worker, "completed": worker.get_completed(
-                start, end), "payment": worker.get_payment(start, end)}
-            # Обновляем данные за месяц
-            completed += worker.get_completed(start, end)
-            payment += worker.get_payment(start, end)
-        # Обновляем данные за всё время
-        all_completed += worker.get_all_completed_amount()
-        all_payment += worker.get_all_payment()
+        m_stats = month_data_by_worker.get(
+            worker.id, {'completed': 0, 'payment': 0})
+        t_stats = total_data_by_worker.get(
+            worker.id, {'completed': 0, 'payment': 0})
+
+        if m_stats['completed'] > 0:
+            workers[worker] = {
+                "worker": worker,
+                "completed": m_stats['completed'],
+                "payment": m_stats['payment']
+            }
+            completed += m_stats['completed']
+            payment += m_stats['payment']
+
+        all_completed += t_stats['completed']
+        all_payment += t_stats['payment']
+
+        all_workers_with_stats.append({
+            'worker': worker,
+            'all_completed': t_stats['completed'],
+            'all_payment': t_stats['payment']
+        })
     # Заполняем словарь с данными для шаблона
     context['workers'] = workers
     context['completed_products'] = completed
@@ -1189,7 +1240,7 @@ def workers_list_view(request: HttpRequest) -> HttpResponse | JsonResponse | Htt
     context['prev'] = prev
     context['next'] = next
     context['current_date'] = cur_date
-    context['all_workers'] = workers_data
+    context['all_workers'] = all_workers_with_stats
     context['all_completed'] = all_completed
     context['all_payment'] = all_payment
     # Получаем кол-во вопросов, на которые не был дан ответ
@@ -1346,6 +1397,12 @@ def product_in_work_detail_view(request: HttpRequest, pk: int) -> HttpResponse |
                             'amount', f'Выбрано недопустимое кол-во. К изготовлению доступно {product.get_ava_amount()} шт.')
                         context['queueform'] = form
                         return render(request, 'product_in_work.html', context)
+                    # Сбрасываем доступное количество изделия для обновления
+                    parts = Part.objects.filter(product=product)
+                    for part in parts:
+                        part.ava_amount = None
+                        part.save()
+                    # Сбрасываем доступное количество изделия
                     product.ava_amount = None
                     product.save()
                     # Если запись о данном изделии в очереди у данного работника уже есть - увеличиваем количество
@@ -1358,6 +1415,9 @@ def product_in_work_detail_view(request: HttpRequest, pk: int) -> HttpResponse |
                     else:
                         CreationInstance.objects.create(
                             worker=worker_data, product=product, status='QUEUED', amount=amount, queued=timezone.now())
+                    # Обновляем доступное количество частей
+                    for part in parts:
+                        part.get_ava_amount()
                     # Обновляем доступное количество изделия
                     product.get_ava_amount()
                 # Добавляем в очередь часть изделия
@@ -1374,10 +1434,13 @@ def product_in_work_detail_view(request: HttpRequest, pk: int) -> HttpResponse |
                             'amount', f'Выбрано недопустимое кол-во. К изготовлению доступно {selected_part.get_ava_amount()} шт.')
                         context['queueform'] = form
                         return render(request, 'product_in_work.html', context)
-                    selected_part.ava_amount = 0
-                    selected_part.product.ava_amount = 0
-                    selected_part.save()
+                    selected_part.product.ava_amount = None
                     selected_part.product.save()
+                    # Сбрасываем доступное количество частей для обновления
+                    parts = Part.objects.filter(product=selected_part.product)
+                    for part in parts:
+                        part.ava_amount = None
+                        part.save()
                     # Если запись о данной части в очереди у данного работника уже есть - увеличиваем количество
                     instance = CreationInstance.objects.filter(
                         worker=worker_data, part=selected_part, status='QUEUED').first()
@@ -1388,8 +1451,9 @@ def product_in_work_detail_view(request: HttpRequest, pk: int) -> HttpResponse |
                     else:
                         CreationInstance.objects.create(
                             worker=worker_data, part=selected_part, status='QUEUED', amount=amount, queued=timezone.now())
+                    for part in parts:
+                        part.get_ava_amount()
                     # Обновляем доступное количество части и изделия
-                    selected_part.get_ava_amount()
                     selected_part.product.get_ava_amount()
                 # Обновляем список для добавления в очередь изделия/частей
                 raw_parts = Part.objects.filter(product=product)

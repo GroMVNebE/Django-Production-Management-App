@@ -68,13 +68,13 @@
         <th>Произведено изделий</th>
         <th>Выплата</th>
       </tr>
-      {% for worker in all_workers %}
+      {% for item in all_workers %}
       <tr>
         <td style="text-align: left">
-          <a href="{{ worker.get_absolute_url }}" class="table-link">{{ worker }}</a>
+          <a href="{{ item.worker.get_absolute_url }}" class="table-link">{{ item.worker }}</a>
         </td>
-        <td style="width: 15%">{{ worker.get_all_completed_amount }}</td>
-        <td style="width: 12%">{{ worker.get_all_payment }} руб.</td>
+        <td style="width: 15%">{{ item.all_completed }}</td>
+        <td style="width: 12%">{{ item.all_payment }} руб.</td>
       </tr>
       {% endfor %}
       <tr>

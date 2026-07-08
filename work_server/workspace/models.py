@@ -492,7 +492,7 @@ class WorkerData(models.Model):
 
     def get_payment(self):
         creations = CreationInstance.objects.filter(
-            worker=self, completed__gte=timezone.now().date().replace(day=1), status='COMPLETED').all()
+            worker=self, completed__gte=timezone.now().date().replace(day=1), status='COMPLETED')
         pay = 0
         for creation in creations:
             pay += creation.get_price()
@@ -500,7 +500,7 @@ class WorkerData(models.Model):
 
     def get_completed_amount(self):
         creations = CreationInstance.objects.filter(
-            worker=self, completed__gte=timezone.now().date().replace(day=1), status='COMPLETED').all()
+            worker=self, completed__gte=timezone.now().date().replace(day=1), status='COMPLETED')
         amount = 0
         for creation in creations:
             amount += creation.amount
@@ -524,7 +524,7 @@ class WorkerData(models.Model):
 
     def get_completed(self, start, end):
         creations = CreationInstance.objects.filter(
-            worker=self, completed__gte=start, completed__lte=end, status='COMPLETED').all()
+            worker=self, completed__gte=start, completed__lte=end, status='COMPLETED')
         amount = 0
         for creation in creations:
             amount += creation.amount
@@ -532,7 +532,7 @@ class WorkerData(models.Model):
 
     def get_payment(self, start, end):
         creations = CreationInstance.objects.filter(
-            worker=self, completed__gte=start, completed__lte=end, status='COMPLETED').all()
+            worker=self, completed__gte=start, completed__lte=end, status='COMPLETED')
         pay = 0
         for creation in creations:
             pay += creation.get_price()
