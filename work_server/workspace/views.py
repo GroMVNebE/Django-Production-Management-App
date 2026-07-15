@@ -1790,7 +1790,7 @@ def migrate_view(request: HttpRequest) -> HttpResponse | JsonResponse | HttpResp
             for product in products:
                 if product.labor_cost > 0:
                     prod = Product.objects.create(prod_number=(number_len - len(product_number)) * '0' + product_number,
-                                                  object=obj, name=product.name, amount=1, price=product.price)
+                                                  object=obj, name=product.name, amount=1, price=product.payment)
                     product.number = (
                         number_len - len(product_number)) * '0' + product_number
                     product_number = str(int(product_number)+1)

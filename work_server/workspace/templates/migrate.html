@@ -41,14 +41,14 @@
         <th>Код изделия</th>
         <th>Наименование</th>
         <th>Кол-во</th>
-        <th>Стоимость</th>
+        <th>З/п</th>
       </tr>
       {% for product in products %}
       <tr>
         <td><strong>{{ object }}-{{ product.number }}</strong></td>
         <td>{{ product.name }}</td>
         <td>1</td>
-        <td>{{ product.price }} руб.</td>
+        <td>{{ product.payment }} руб.</td>
       </tr>
       {% if product.divIntoParts %}
       {% for part in product.parts %}
@@ -56,7 +56,7 @@
         <td></td>
         <td>{{ part.name }}</td>
         <td>{{ part.amount }}</td>
-        <td>{{ part.price }} руб.</td>
+        <td>{{ part.payment }} руб.</td>
       </tr>
       {% endfor %} {% endif %} {% endfor %}
     </table>
