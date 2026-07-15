@@ -20,6 +20,7 @@ import json
 import pandas as pd
 import openpyxl as xl
 from fnmatch import fnmatch
+import re
 
 
 # ---------- БЛОК ВСПОМОГАТЕЛЬНЫХ ФУНКЦИЙ ----------
@@ -178,82 +179,6 @@ def update_notification(request: HttpRequest = None) -> JsonResponse | None:
 #     return True
 
 
-def rc_to_a1(row: int, col: int) -> str:
-    """
-    ### Описание
-    Переводит формат ячеек Excel-таблиц R1C1 в формат A1
-    ### Параметры
-    - row — номер строки
-    - col — номер столбца
-    ### Возвращаемое значение
-    - Строка с обозначением ячейки Excel-таблицы в формате A1
-    """
-    letter = ''
-    # Преобразование номера столбца в букву/строку
-    while col > 0:
-        col, remainder = divmod(col - 1, 26)
-        letter = chr(65 + remainder) + letter
-    # Возвращаем обозначение ячейки в формате A1
-    return f"{letter}{row}"
-
-
-def check_spec(data: pd.DataFrame, formatted: xl.Workbook) -> bool:
-    """
-    ### Описание
-    Проверяет формат Спецификации перед парсингом
-    ### Параметры
-    - data — данные для парсинга из Спецификации в формате pandas.DataFrame
-    - formatted — Excel-файл с форматированием (для просмотра цветов ячеек)
-    ### Возвращаемое значение
-    - True, если формат корректен
-    - Выбрасывает ValidationError, если формат некорректен
-    """
-    # Проверка заголовков в спецификации
-    if data.iloc[0, 1] != 'Наименование':
-        raise ValidationError("Не найдены наименования частей изделий")
-    if data.iloc[0, 11] != 'Итого\nруб':
-        raise ValidationError("Не найдены итоговые стоимости частей изделий")
-    if data.iloc[0, 14] != 'З/п':
-        raise ValidationError(
-            "Не найдены данные о зарплатах за изготовление изделий")
-    row_idx = 10
-    # Флаг для проверки, содержится ли заголовок в предыдущей строке
-    isHeader = False
-    # Флаг для проверки, был ли хотя бы один заголовок
-    anyHeader = False
-    sheet = formatted['Спецификация']
-
-    # Цвет: #33CCFF
-    # Закрашено и выделено жирным — заголовок изделия
-    # Закрашено без выделения — заголовок части изделия
-
-    # Построчно проверяем изделия в спецификации
-    while pd.notna(data.iloc[row_idx, 1]):
-        # Получаем ячейку с наименованием изделия
-        cell = sheet[rc_to_a1(row_idx+1, 2)]
-        # Если она закрашена синим
-        if cell.fill and cell.fill.start_color.rgb == "FF33CCFF":
-            # Если выделена жирным шрифтом - это заголовок изделия
-            # Если в предыдущей строке уже был заголовок изделия, выдаём ошибку
-            if cell.font and cell.font.bold:
-                if isHeader:
-                    raise ValidationError("Обнаружено пустое изделие")
-                isHeader = True
-                anyHeader = True
-            # Иначе это заголовок части изделия
-            else:
-                isHeader = False
-        # Если ячейка не закрашена и не было ни одного заголовка изделия, выдаём ошибку
-        elif anyHeader is False:
-            raise ValidationError("Обнаружено оборудование без изделия")
-        # Иначе это просто компонент
-        else:
-            isHeader = False
-        row_idx += 1
-    # Если все проверки прошли без ошибок - всё в порядке
-    return True
-
-
 # ---------- БЛОК VIEW-ФУНКЦИЙ ----------
 @login_required
 def index(request: HttpRequest) -> JsonResponse | HttpResponse:
@@ -394,81 +319,6 @@ def index(request: HttpRequest) -> JsonResponse | HttpResponse:
         # Выполняется при первичной загрузке страницы
         # Отправляем заполненный шаблон с объектами
         return render(request, 'master.html', context)
-
-        # --- LEGACY для календаря с объектами и их состояниями ---
-        # start_dt = timezone.now().date()
-        # end_dt = timezone.now().date()
-        # dates = {}
-        # for object in objects:
-        #     states = ObjectStateInstance.objects.filter(
-        #         object=object).all()
-        #     if not states is None:
-        #         for state in states:
-        #             event_date = state.created_at
-        #             if start_dt is None:
-        #                 start_dt = event_date
-        #             else:
-        #                 start_dt = min(start_dt, event_date)
-        #             if end_dt is None:
-        #                 end_dt = event_date
-        #             else:
-        #                 end_dt = max(end_dt, event_date)
-        #             if dates.get(object.id) is None:
-        #                 dates[object.id] = dict()
-        #             dates[object.id][event_date] = date_keys.get(
-        #                 state.state.name, 'none')
-        #     event_date = object.deadline
-        #     if dates.get(object.id) is None:
-        #         dates[object.id] = dict()
-        #     dates[object.id][event_date] = date_keys.get('Дедлайн')
-        #     if start_dt is None:
-        #         start_dt = event_date
-        #     else:
-        #         start_dt = min(start_dt, event_date)
-        #     start_dt = min(start_dt, timezone.now().date())
-        #     if end_dt is None:
-        #         end_dt = event_date
-        #     else:
-        #         end_dt = max(end_dt, event_date)
-        #     end_dt = max(end_dt, timezone.now().date())
-        #     if (end_dt - start_dt).days < 7:
-        #         start_dt -= timedelta(days=7)
-        #         end_dt += timedelta(days=7)
-        # year_month = dict()
-        # days = dict()
-        # idx = 0
-        # st = start_dt
-        # while st <= end_dt:
-        #     if year_month.get(str(st.isoformat())[:-3]) is None:
-        #         year_month[(str(st.isoformat())[:-3])] = 1
-        #     else:
-        #         year_month[(str(st.isoformat())[:-3])] += 1
-        #     days[idx] = {'value': str(st.isoformat())
-        #                  [-2::], 'color': 'none', 'text': 'black'}
-        #     if st == timezone.now().date():
-        #         days[idx]['color'] = date_keys.get('Текущий день')
-        #         days[idx]['text'] = 'white'
-        #     elif st.weekday() in [5, 6]:
-        #         days[idx]["color"] = 'rgb(200, 0, 100)'
-        #         days[idx]['text'] = 'white'
-        #     idx += 1
-        #     for object in objects:
-        #         if dates.get(object.id) is None:
-        #             dates[object.id] = dict()
-        #         if dates.get(object.id).get(st) is None:
-        #             if st == timezone.now().date():
-        #                 dates[object.id][st] = date_keys.get(
-        #                     'Текущий день')
-        #             else:
-        #                 dates[object.id][st] = 'none'
-        #     st += timedelta(days=1)
-
-        # for key in dates:
-        #     dates[key] = dict(sorted(dates.get(key).items()))
-
-        # context = {'year_month': year_month, 'days': days,
-        #            'objects': objects, 'datemap': dates, 'legend': date_keys}
-        # return render(request, 'master.html', context)
 
     # Иначе отправляем шаблон с текстом об ошибке (т.к. эта страница загрузится только для пользователя без группы)
     else:
@@ -908,51 +758,6 @@ def object_detail_view(request: HttpRequest, pk: int) -> HttpResponse | JsonResp
         'ready': ready
     }
     if request.method == "POST":
-
-        # --- LEGACY для добавления состояния ---
-        # if 'add_state' in request.POST:
-        #     form = AddStateForm(request.POST, choices=form_states)
-        #     if form.is_valid():
-        #         state_idx = int(form.cleaned_data["state"])
-        #         created_at = form.cleaned_data["created_at"]
-        #         idx = 1
-        #         selected_state = None
-        #         for state in all_states:
-        #             if idx == state_idx:
-        #                 selected_state = state
-        #                 break
-        #             idx += 1
-        #         if selected_state:
-        #             for cur_state in states:
-        #                 if cur_state.state.group == selected_state.group:
-        #                     if cur_state.state.priority > selected_state.priority and created_at > cur_state.created_at:
-        #                         form.add_error(
-        #                             'created_at', f'{selected_state.name}: состояние не может распологаться раньше {cur_state.state.name}')
-        #                         context['form'] = form
-        #                         break
-        #             if created_at > object.deadline:
-        #                 form.add_error(
-        #                     'created_at', f'{selected_state.name}: состояние не может распологаться позже {object.deadline}')
-        #                 context['form'] = form
-        #         if created_at < datetime(year=2020, month=1, day=1).date():
-        #             form.add_error(
-        #                 'created_at', f'{selected_state.name}: состояние не может распологаться раньше 1 января 2020 года')
-        #             context['form'] = form
-        #         if not form.is_valid():
-        #             return render(request, 'object_detail.html', context)
-        #         if selected_state:
-        #             if selected_state not in [x.state for x in states]:
-        #                 ObjectStateInstance.objects.create(
-        #                     object=object, state=selected_state, created_at=created_at)
-        #             else:
-        #                 changed_state = ObjectStateInstance.objects.filter(
-        #                     object=object, state=selected_state).first()
-        #                 changed_state.created_at = created_at
-        #                 changed_state.save()
-        #         else:
-        #             object.deadline = created_at
-        #             object.save()
-        #             context['object'] = object
 
         # При удалении объекта
         if 'delete_obj' in request.POST:
@@ -1659,6 +1464,259 @@ def instance_details(request: HttpRequest, pk: int) -> HttpResponse | JsonRespon
     return render(request, 'instance_detail.html', context)
 
 
+def check_spec(workbook: xl.Workbook):
+    """### Проверяет корректность формата спецификации
+
+    Args:
+        workbook (xl.Workbook): Excel-книга, содержащая спецификацию
+
+    Raises:
+        ValidationError: Причина несоответствия формату
+
+    Returns:
+        bool: Соответствует ли спецификация формату
+    """
+    # Проверка заголовков в спецификации
+    required_headers = {
+        'Наименование': False,
+        'Кол-во': False,
+        'ТЗ\nч/д': False,
+        'Итого\nруб': False,
+        'З/п': False
+    }
+    sheet = workbook['Спецификация']
+    NAME_COLUMN = None
+    first_row = next(sheet.iter_rows(
+        min_row=1, max_row=1, values_only=False), [])
+    for idx, cell in enumerate(first_row):
+        val = cell.value
+        if val in required_headers:
+            required_headers[val] = True
+            if val == 'Наименование':
+                NAME_COLUMN = idx
+
+    for header, located in required_headers.items():
+        if not located:
+            raise ValidationError(f'Не найден столбец {header}')
+
+    # Цвет: #33CCFF
+    # Закрашено и выделено жирным — заголовок изделия
+    # Закрашено без выделения — заголовок части изделия
+    rows_generator = sheet.iter_rows(min_row=11, values_only=False)
+    # Флаг названия изделия
+    isProduct = False
+    # Флаг названия части
+    isPart = False
+    # Флаг наличия изделий
+    anyProduct = False
+
+    for row in rows_generator:
+        cell = row[NAME_COLUMN]
+        name = cell.value
+
+        fill = cell.fill
+        is_colored = fill and fill.start_color and fill.start_color.rgb == 'FF33CCFF'
+
+        if is_colored:
+            font = cell.font
+            is_bold = font and font.bold
+
+            if is_bold:
+                if isProduct:
+                    raise ValidationError('Обнаружено пустое изделие')
+                isProduct = True
+                anyProduct = True
+            else:
+                if isPart:
+                    raise ValidationError('Обнаружена пустая часть')
+                if not anyProduct:
+                    raise ValidationError(
+                        'Обнаружена часть, не принадлежащая изделию')
+                isPart = True
+                isProduct = False
+
+        else:
+            if not anyProduct:
+                raise ValidationError('Обнаружено оборудование без изделия')
+            isProduct = False
+            isPart = False
+
+    if not anyProduct:
+        raise ValidationError('Не найдено ни одного изделия')
+
+    return True
+
+
+class ParseableProduct():
+
+    def __init__(self, name: str, price: Decimal, labor_cost: Decimal, payment: Decimal):
+        self.name = name
+        self.number = ''
+        self.price = price
+        self.labor_cost = labor_cost
+        self.payment = payment
+        self.parts: list[ParseablePart] = []
+        self.divIntoParts = True
+
+
+class ParseablePart():
+
+    def __init__(self, name: str, product_price: Decimal, product_payment: Decimal, products: list[ParseableProduct]):
+        self.name = name
+        self.price = Decimal(0)
+        self.payment = Decimal(0)
+        self.product_price = product_price
+        self.product_payment = product_payment
+        for product in products:
+            product.parts.append(self)
+
+
+def parse_spec(spec):
+    """### Функция для парсинга спецификации
+    Парсит изделия и части из спецификации в формате Excel-таблицы для дальнейшего переноса в БД
+
+    Args:
+        spec: Загруженная Excel-книга, содержащая спецификацию
+
+    Returns:
+        list[`class`:ParseableProduct:]: Список изделий
+    """
+    # Считываем данные из файла
+    spec_format = xl.load_workbook(
+        spec, read_only=True, data_only=True)
+    sheet = spec_format['Спецификация']
+    # Проверяем корректность файла
+    check_spec(spec_format)
+    # Находим положение нужных столбцов
+    required_headers = {
+        'Наименование': None,
+        'Кол-во': None,
+        'ТЗ\nч/д': None,
+        'Итого\nруб': None,
+        'З/п': None
+    }
+    first_row = next(sheet.iter_rows(
+        min_row=1, max_row=1, values_only=False), [])
+    for idx, cell in enumerate(first_row):
+        if cell.value in required_headers:
+            required_headers[cell.value] = idx
+    NAME_COLUMN = required_headers['Наименование']
+    AMOUNT_COLUMN = required_headers['Кол-во']
+    LABOR_COSTS_COLUMN = required_headers['ТЗ\nч/д']
+    PRICE_COLUMN = required_headers['Итого\nруб']
+    PAYMENT_COLUMN = required_headers['З/п']
+
+    # Парсим изделия и части
+    blacklist_patterns = [p.value for p in ParseBlacklistValue.objects.all()]
+    products: list[ParseableProduct] = []
+    parent_products: list[ParseableProduct] = []
+    current_part: ParseablePart | None = None
+    D2 = Decimal('0.01')
+    D4 = Decimal('0.0001')
+    rows_generator = sheet.iter_rows(min_row=11, values_only=False)
+    for row in rows_generator:
+        name_cell = row[NAME_COLUMN]
+        name = name_cell.value
+
+        fill = name_cell.fill
+        is_colored = fill and fill.start_color and fill.start_color.rgb == 'FF33CCFF'
+
+        amount_val = row[AMOUNT_COLUMN].value
+        amount = Decimal(amount_val if amount_val is not None else 1)
+
+        price_val = row[PRICE_COLUMN].value
+        price = Decimal(price_val if price_val is not None else 0).quantize(
+            D2, rounding=ROUND_HALF_UP)
+
+        # Парсим изделие или часть
+        if is_colored:
+            font = name_cell.font
+            is_bold = font and font.bold
+
+            # Изделие
+            if is_bold:
+                current_part = None
+                parent_products = []
+
+                labor_val = row[LABOR_COSTS_COLUMN].value
+                labor_cost = Decimal(labor_val if labor_val is not None else 0).quantize(
+                    D4, rounding=ROUND_HALF_UP)
+
+                payment_val = row[PAYMENT_COLUMN].value
+                payment = Decimal(payment_val if payment_val is not None else 0).quantize(
+                    D2, rounding=ROUND_HALF_UP)
+
+                if amount == 1:
+                    products.append(ParseableProduct(
+                        name, price, labor_cost, payment))
+                    parent_products = [products[-1]]
+
+                elif amount > 1:
+                    products_list = name.split(', ')
+                    for product_item in products_list:
+                        if ' - ' in product_item:
+                            start, end = product_item.split(' - ')
+                            start_nums = [int(x)
+                                          for x in re.findall(r'\d+', start)]
+                            end_nums = [int(x)
+                                        for x in re.findall(r'\d+', end)]
+
+                            prefix_match = re.match(r'(^[^\d]+)', start)
+                            prefix = prefix_match.group(
+                                1) if prefix_match else ""
+
+                            results = []
+                            if start_nums[:-1] == end_nums[:-1]:
+                                stable_nums = start_nums[:-1]
+                                full_prefix = prefix + \
+                                    ".".join(map(str, stable_nums)) + \
+                                    "." if stable_nums else prefix
+
+                                start_last = start_nums[-1]
+                                end_last = end_nums[-1]
+                                for last in range(start_last, end_last + 1):
+                                    results.append(f"{full_prefix}{last}")
+
+                            elif len(start_nums) == 2:
+                                for major in range(start_nums[0], end_nums[0] + 1):
+                                    s_minor = start_nums[1]
+                                    e_minor = end_nums[1]
+                                    for minor in range(s_minor, e_minor + 1):
+                                        results.append(
+                                            f"{prefix}{major}.{minor}")
+
+                            for result in results:
+                                products.append(ParseableProduct(
+                                    result, price, labor_cost, payment))
+                                parent_products.append(products[-1])
+                        else:
+                            products.append(ParseableProduct(
+                                product_item, price, labor_cost, payment))
+                            parent_products.append(products[-1])
+
+                if len(parent_products) != amount:
+                    raise ValidationError(
+                        f'Количество сгенерированных наименований {name} не совпадает с заданным количеством ({len(parent_products)} != {amount})'
+                    )
+
+            # Часть
+            else:
+                current_part = ParseablePart(
+                    name, parent_products[0].price, parent_products[0].payment, parent_products)
+                if any(fnmatch(name, pattern) for pattern in blacklist_patterns):
+                    for product in parent_products:
+                        product.divIntoParts = False
+
+        # Компонент
+        else:
+            if current_part:
+                current_part.price += price
+                current_part.payment = (current_part.product_payment * (
+                    current_part.price / current_part.product_price)).quantize(D2, rounding=ROUND_HALF_UP)
+
+    return products
+
+
 @login_required
 def migrate_view(request: HttpRequest) -> HttpResponse | JsonResponse | HttpResponseRedirect:
     """
@@ -1692,390 +1750,34 @@ def migrate_view(request: HttpRequest) -> HttpResponse | JsonResponse | HttpResp
         if form.is_valid():
             # Получаем файл из запроса
             spec = request.FILES.get("spec")
-            # Считываем данные из файла
-            spec_data = pd.read_excel(
-                spec, header=None, sheet_name="Спецификация")
-            spec_format = xl.load_workbook(
-                spec, read_only=True, data_only=True)
-            sheet = spec_format['Спецификация']
-            # Проверяем корректность файла
-            if check_spec(spec_data, spec_format) is False:
-                raise ValidationError(
-                    "Спецификафия не соответствует формату")
-            # Подготавливаем переменные
-            # Получаем номер объекта
             obj_number = spec.name.split()[0]
-            # Словарь с данными об изделиях (части, оплата, название, кол-во, номер)
-            prod_data = dict()
-            # Словарь с данными о частях изделия (оплата, кол-во, название)
-            parts = dict()
-            row_idx = 10
-            # Заголовок изделия
-            header = ''
-            # Заголовок части изделия
-            part_head = ''
-            # Стоимость изделия (для расчёта оплаты частей)
-            prod_price = Decimal(0.00)
-            # Кол-во изделий
-            prod_amount = 0
-            # Оплата за изделие
-            pay = 0
-            # Стоимость части изделия
-            part_price = Decimal(0.00)
-            # Кол-во частей изделия
-            part_amount = Decimal(1.00)
-            max_idx = 0
-            unique_idx = 0
-            skip = False
-            blacklisted = False
-            # Парсим спецификацию по столбцу с названиями
-            while pd.notna(spec_data.iloc[row_idx, 1]):
-                # Получаем ячейку с форматированием
-                cell = sheet[rc_to_a1(row_idx+1, 2)]
-                # Если в ячейке - заголовок изделия/части
-                if cell.fill and cell.fill.start_color.rgb == "FF33CCFF":
-                    # Заголовок изделия
-                    if cell.font and cell.font.bold:
-                        # Если были собраны данные о части предыдущего изделия, сохраняем его данные
-                        if part_head != '':
-                            payment = ((part_price / part_amount) /
-                                       prod_price) * pay
-                            parts[unique_idx] = {
-                                'price': payment.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP), 'amount': part_amount, 'name': part_head}
-                            unique_idx += 1
-                        # Если предыдущее изделие в черном списке, сбрасываем собранные данные
-                        if blacklisted:
-                            parts = dict()
-                            blacklisted = False
-                        # Если были собраны данные о предыдущем изделии, сохраняем его данные
-                        if header != '':
-                            # Если в заголовке несколько изделий
-                            # Парсим их и сохраняем каждое изделие отдельно
-                            if ', ' in header or ' - ' in header:
-                                list = header.split(', ')
-                                idx = 1
-                                for part in list:
-                                    # Если в названии указан диапазон
-                                    if ' - ' in part:
-                                        # Получаем начало и конец диапазона
-                                        start = part.split(" - ")[0]
-                                        end = part.split(" - ")[1]
-                                        # Удаляем все символы, не относящиеся к диапазону (должны остаться только числа)
-                                        deleted = ''
-                                        sym = start[0]
-                                        while sym.lower() in ALPHABET:
-                                            deleted += sym
-                                            start = start.replace(sym, '', 1)
-                                            sym = start[0]
-                                        # Оставляем в конце только числа
-                                        end = end.replace(deleted, '', 1)
-                                        # Определяем количество знаков после запятой в конце диапазона
-                                        if '.' in end:
-                                            dec_places = len(end.split('.')[1])
-                                        else:
-                                            dec_places = 0
-                                        # Получаем десятичное представление начала и конца диапазона
-                                        start = Decimal(start)
-                                        end = Decimal(end)
-                                        # Рассчитываем шаг диапазона
-                                        step = Decimal(1) / pow(10, dec_places)
-                                        # Создаём изделия для каждого значения в диапазоне
-                                        while start <= end:
-                                            # При указании номера изделия добавляются ведущие нули, таким образом получится номер вида 1234-01-23-001, где 1234-01 - номер объекта, 23 - номер изделия, 001 - номер в диапазоне
-                                            prod_data[unique_idx] = {
-                                                'parts': parts.copy(), 'price': pay, 'name': deleted + f'{start}', 'amount': 1, 'number': (len(str(prod_amount)) - len(str(idx))) * "0" + str(idx)}
-                                            unique_idx += 1
-                                            start += step
-                                            idx += 1
-                                    # Иначе просто создаём изделие с указанным названием
-                                    else:
-                                        prod_data[unique_idx] = {
-                                            'parts': parts.copy(), 'price': pay, 'name': part, 'amount': 1, 'number': (len(str(prod_amount)) - len(str(idx))) * "0" + str(idx)}
-                                        unique_idx += 1
-                                        idx += 1
-                            # Иначе сохраняем изделие как есть
-                            else:
-                                prod_data[unique_idx] = {
-                                    'parts': parts.copy(), 'price': pay, 'name': header, 'amount': prod_amount}
-                                unique_idx += 1
-                        # Если трудозатраты больше 0, начинаем сбор данных о новом изделии
-                        if spec_data.iloc[row_idx, 12] > 0:
-                            # Получаем заголовок изделия
-                            header = spec_data.iloc[row_idx, 1]
-                            # Получаем кол-во изделий
-                            prod_amount = int(spec_data.iloc[row_idx, 8])
-                            # Получаем стоимость изделия
-                            prod_price = Decimal(spec_data.iloc[row_idx, 11])
-                            # Рассчитываем оплату за изделие
-                            pay = int(
-                                spec_data.iloc[row_idx, 14] // spec_data.iloc[row_idx, 8])
-                            # Создаём словарь частей изделия
-                            parts = dict()
-                            # Подгатавливаем переменные для сбора данных о частях
-                            part_head = ''
-                            part_price = Decimal(0.00)
-                            part_amount = Decimal(1.00)
-                            max_idx += 1
-                            skip = False
-                        else:
-                            skip = True
-                    # Заголовок части изделия
-                    else:
-                        # Проверяем на наличие заголовка части в ЧС или флаг пропуска
-                        if any(fnmatch(spec_data.iloc[row_idx, 1], pattern.value) for pattern in ParseBlacklistValue.objects.all()) or skip:
-                            if not skip:
-                                blacklisted = True
-                            row_idx += 1
-                            continue
-                        # Если были собраны данные о предыдущей части, сохраняем её данные
-                        if part_head != '':
-                            payment = ((part_price / part_amount) /
-                                       prod_price) * pay
-                            parts[unique_idx] = {
-                                'price': payment.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP), 'amount': part_amount, 'name': part_head}
-                            part_amount = Decimal(1.00)
-                            unique_idx += 1
-                        # Начинаем сбор данных о новой части
-                        # Получаем заголовок части
-                        part_head = spec_data.iloc[row_idx, 1]
-                        # Получаем кол-во частей
-                        if pd.notna(spec_data.iloc[row_idx, 7]):
-                            part_amount = Decimal(
-                                spec_data.iloc[row_idx, 7])
-                        # Сбрасываем стоимость части
-                        part_price = Decimal(0.00)
-                # Если строка - не заголовок, собираем данные о части
-                else:
-                    if not skip:
-                        part_price += Decimal(spec_data.iloc[row_idx, 11])
-                row_idx += 1
-            # Обрабатываем данные о последней части/изделии
-            if part_head != '' and not skip:
-                payment = ((part_price / part_amount) / prod_price) * pay
-                parts[unique_idx] = {
-                    'price': payment.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP), 'amount': part_amount, 'name': part_head}
-                unique_idx += 1
-            if (', ' in header or ' - ' in header) and not skip:
-                if blacklisted:
-                    parts = dict()
-                list = header.split(', ')
-                idx = 1
-                for part in list:
-                    if ' - ' in part:
-                        start = part.split(" - ")[0]
-                        end = part.split(" - ")[1]
-                        deleted = ''
-                        sym = start[0]
-                        while sym.lower() in ALPHABET:
-                            deleted += sym
-                            start = start.replace(sym, '', 1)
-                            sym = start[0]
-                        if '.' in end:
-                            dec_places = len(end.split('.')[1])
-                        else:
-                            dec_places = 0
-                        end = end.replace(deleted, '', 1)
-                        start = Decimal(start)
-                        end = Decimal(end)
-                        step = Decimal(1) / pow(10, dec_places)
-                        while start <= end:
-                            prod_data[unique_idx] = {
-                                'parts': parts.copy(), 'price': pay, 'name': deleted + f'{start}', 'amount': 1, 'number': (len(str(prod_amount)) - len(str(idx))) * "0" + str(idx)}
-                            unique_idx += 1
-                            start += step
-                            idx += 1
-                    else:
-                        prod_data[unique_idx] = {
-                            'parts': parts.copy(), 'price': pay, 'name': part, 'amount': 1, 'number': (len(str(prod_amount)) - len(str(idx))) * "0" + str(idx)}
-                        unique_idx += 1
-                        idx += 1
-            elif not skip:
-                if blacklisted:
-                    parts = dict()
-                prod_data[unique_idx] = {
-                    'parts': parts.copy(), 'price': pay, 'name': header, 'amount': prod_amount}
-                unique_idx += 1
-            # Добавляем номера изделий (1234-01-XX-YY, XX-номер изделия, YY-номер в диапазоне)
-            idx = 1
-            lst_number = 0
-            for key in prod_data:
-                if prod_data[key].get('number') == None:
-                    if lst_number != 0:
-                        idx += 1
-                        lst_number = 0
-                    prod_data[key]['number'] = (
-                        len(str(max_idx)) - len(str(idx))) * '0' + str(idx)
-                    idx += 1
-                else:
-                    if Decimal(lst_number) > Decimal(prod_data[key].get('number')):
-                        idx += 1
-                    lst_number = prod_data[key].get('number')
-                    prod_data[key]['number'] = (
-                        len(str(max_idx)) - len(str(idx))) * '0' + str(idx) + '-' + lst_number
+            products = parse_spec(spec)
+
             # Добавляем записи в базу данных
             obj = Object.objects.create(obj_number=obj_number, created_at=timezone.now(
             ).date())
             ObjectStateInstance.objects.create(
                 object=obj, state=get_default_object_state(), created_at=timezone.now())
-            for key in prod_data:
-                data = prod_data.get(key)
-                prod = Product.objects.create(prod_number=data.get('number'), object=obj, name=data.get(
-                    'name'), amount=data.get('amount'), price=data.get('price'))
-                parts_data = data.get('parts')
-                for part_key in parts_data:
-                    part_data = parts_data.get(part_key)
-                    Part.objects.create(
-                        name=part_data.get('name'), product=prod, price=part_data.get('price'))
-            context['products'] = prod_data
+
+            product_number = '1'
+            number_len = len(str(len(products)))
+            for product in products:
+                if product.labor_cost > 0:
+                    prod = Product.objects.create(prod_number=(number_len - len(product_number)) * '0' + product_number,
+                                                  object=obj, name=product.name, amount=1, price=product.price)
+                    product.number = (
+                        number_len - len(product_number)) * '0' + product_number
+                    product_number = str(int(product_number)+1)
+                    if product.divIntoParts:
+                        for part in product.parts:
+                            Part.objects.create(
+                                name=part.name, product=prod, price=part.payment)
+
+            context['products'] = [
+                product for product in products if product.labor_cost > Decimal(0)]
             context['object'] = obj
     return render(request, "migrate.html", context)
 
-
-# @login_required
-# def migrate_view(request):
-#     check_user_group(request, "master", True)
-#     context = dict()
-#     if request.method == "GET":
-#         form = SelectFileForm()
-#         context['form'] = form
-#     elif request.method == "POST":
-#         form = SelectFileForm(request.POST, request.FILES)
-#         if form.is_valid():
-#             # Получаем файлы из запроса
-#             summary = request.FILES.get("summary")
-#             spec = request.FILES.get("spec")
-#             all_data = request.FILES.get("all")
-#             if summary and spec:
-#                 # Считываем данные из файлов
-#                 sum_data = pd.read_excel(
-#                     summary, header=None, sheet_name="Сводная спецификация")
-#                 spec_data = pd.read_excel(
-#                     spec, header=None, sheet_name="Спецификация")
-#                 spec_format = xl.load_workbook(spec, read_only=True)
-#                 sheet = spec_format['Спецификация']
-#             elif all_data:
-#                 sum_data = pd.read_excel(
-#                     all_data, header=None, sheet_name="Сводная")
-#                 spec_data = pd.read_excel(
-#                     all_data, header=None, sheet_name="Спецификация")
-#                 spec_format = xl.load_workbook(all_data, read_only=True)
-#                 sheet = spec_format['Спецификация']
-#             else:
-#                 raise ValidationError(
-#                     'Должны быть выбраны файлы Сводной и Спецификации ИЛИ общий файл')
-#             # Проверяем форматы и правильное расположение столбцов в файлах
-#             if check_summary(sum_data) is False:
-#                 raise ValidationError("Сводная не соответствует формату")
-#             if check_spec(spec_data, spec_format) is False:
-#                 raise ValidationError(
-#                     "Спецификафия не соответствует формату")
-#             # Проверяем, что в обоих файлах указан один объект
-#             obj_number = sum_data.iloc[0, 3]
-#             if summary and spec:
-#                 if obj_number not in summary.name:
-#                     raise ValidationError(
-#                         "Неправильно указан объект в Сводной")
-#                 if obj_number not in spec.name:
-#                     raise ValidationError(
-#                         "Указанный в Спецификации объект отличается от указанного в Сводной")
-#             # Парсим данные из Сводной
-#             products = dict()
-#             row_idx = 4
-#             while pd.notna(sum_data.iloc[row_idx, 1]):
-#                 prod_number = sum_data.iloc[row_idx, 1].replace(
-#                     f'{obj_number}-', '', 1)
-#                 prod_name = sum_data.iloc[row_idx, 2]
-#                 prod_amount = sum_data.iloc[row_idx, 3]
-#                 products[prod_number] = {
-#                     'name': prod_name, 'amount': prod_amount}
-#                 row_idx += 1
-#             row_idx += 3
-#             isAva = True
-#             while pd.notna(sum_data.iloc[row_idx, 2]):
-#                 if pd.notna(sum_data.iloc[row_idx, 14]):
-#                     if sum_data.iloc[row_idx, 14] > 0:
-#                         isAva = False
-#                 else:
-#                     isAva = False
-#                 row_idx += 1
-#             # Парсим данные из спецификации
-#             prod_data = dict()
-#             parts = dict()
-#             row_idx = 10
-#             header = ''
-#             part_head = ''
-#             prod_price = 0
-#             pay = 0
-#             part_price = 0
-#             part_amount = 1
-#             while pd.notna(spec_data.iloc[row_idx, 1]):
-#                 cell = sheet[rc_to_a1(row_idx+1, 2)]
-#                 if cell.fill and cell.fill.start_color.rgb == "FF33CCFF":
-#                     if cell.font and cell.font.bold:
-#                         if part_head != '':
-#                             payment = ((part_price / part_amount) /
-#                                        prod_price) * pay
-#                             parts[part_head] = {
-#                                 'price': int(payment), 'amount': part_amount, 'name': part_head}
-#                         if header != '':
-#                             prod_data[header] = {
-#                                 'parts': parts.copy(), 'price': int(pay)}
-#                         header = spec_data.iloc[row_idx, 1]
-#                         prod_price = spec_data.iloc[row_idx, 11]
-#                         pay = spec_data.iloc[row_idx,
-#                                              14] // spec_data.iloc[row_idx, 8]
-#                         parts = dict()
-#                         part_head = ''
-#                         part_price = 0
-#                         part_amount = 1
-#                     else:
-#                         if any(forbidden in spec_data.iloc[row_idx, 1] for forbidden in PARSING_BLACKLIST):
-#                             row_idx += 1
-#                             continue
-#                         if part_head != '':
-#                             payment = ((part_price / part_amount) /
-#                                        prod_price) * pay
-#                             parts[part_head] = {
-#                                 'price': int(payment), 'amount': part_amount, 'name': part_head}
-#                         part_head = spec_data.iloc[row_idx, 1]
-#                         if pd.notna(spec_data.iloc[row_idx, 7]):
-#                             part_amount = spec_data.iloc[row_idx, 7]
-#                         part_price = 0
-#                 else:
-#                     part_price += spec_data.iloc[row_idx, 11]
-#                 row_idx += 1
-#             if part_head != '':
-#                 payment = ((part_price / part_amount) / prod_price) * pay
-#                 parts[part_head] = {
-#                     'price': int(payment), 'amount': part_amount, 'name': part_head}
-#             prod_data[header] = {
-#                 'parts': parts.copy(), 'price': int(pay)}
-#             # Объединяем данные
-#             for key in products:
-#                 data = products.get(key)
-#                 name = data.get('name')
-#                 products[key]['id'] = key
-#                 products[key]['parts'] = prod_data.get(name).get('parts')
-#                 products[key]['price'] = prod_data.get(name).get('price')
-#             # Добавляем записи в базу данных
-#             obj = Object.objects.create(obj_number=obj_number, created_at=timezone.now(
-#             ).date(), deadline=(timezone.now() + timedelta(days=30)).date())
-#             if isAva:
-#                 ObjectStateInstance.objects.create(object=obj, state=ObjectState.objects.filter(
-#                     name="Закуплен").first(), created_at=timezone.now().date())
-#             for key in products:
-#                 data = products.get(key)
-#                 prod = Product.objects.create(prod_number=key, object=obj, name=data.get(
-#                     'name'), amount=data.get('amount'), price=data.get('price'))
-#                 parts_data = data.get('parts')
-#                 for part_key in parts_data:
-#                     part_data = parts_data.get(part_key)
-#                     Part.objects.create(
-#                         name=part_key, product=prod, price=part_data.get('price'))
-#             context['products'] = products
-#             context['object'] = obj
-
-#     return render(request, "migrate.html", context)
 
 @login_required
 def queued_details(request: HttpRequest, pk: int) -> HttpResponse | JsonResponse | HttpResponseRedirect:

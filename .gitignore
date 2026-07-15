@@ -212,3 +212,6 @@ __marimo__/
 # Database
 *.sqlite3
 *.fdb
+
+tasks_descr/*
+test_objects/*
