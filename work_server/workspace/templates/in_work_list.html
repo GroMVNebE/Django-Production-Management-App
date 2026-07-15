@@ -34,9 +34,6 @@
         <th>Изделие</th>
         <th>Работник</th>
         <th>Кол-во</th>
-        {% comment %}
-        <th>Ост. дней</th>
-        {% endcomment %}
         <th>Стоимость</th>
         <th>Завершить</th>
       </tr>
@@ -47,9 +44,6 @@
           <a href="{{ instance.worker.get_absolute_url }}" class="table-link">{{ instance.worker }}</a>
         </td>
         <td style="width: 7%">{{ instance.amount }}</td>
-        {% comment %}
-        <td style="width: 15%">{% if instance.product %} {{ instance.product.get_deadline_days }} {% else %} {{ instance.part.get_deadline_days }} {% endif %}</td>
-        {% endcomment %}
         <td style="text-align: left">{{ instance.get_price }} руб.</td>
         <td style="width: 5%">
           <form method="post" action="" style="display: inline">

@@ -939,13 +939,16 @@ def in_work_view(request: HttpRequest) -> HttpResponse | JsonResponse | HttpResp
         product.get_completed_amount()
         object.get_ready_percentage()
     # Получаем все записи о изделиях/частях, которые в данный момент изготавливаются
-    instances = CreationInstance.objects.filter(status='IN_WORK')
-    # Получаем все вопросы без ответа
-    questions = Question.objects.filter(answer='')
+    instances = (
+        CreationInstance.objects
+        .filter(status='IN_WORK')
+        .select_related('product', 'part', 'part__product', 'worker')
+    )
+    questions_count = Question.objects.filter(answer='').count()
     # Отправляем заполненный шаблон
     context = {
         'instances': instances,
-        'questions': len(questions)
+        'questions': questions_count
     }
     return render(request, 'in_work_list.html', context)
 
