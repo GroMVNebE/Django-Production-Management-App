@@ -454,7 +454,7 @@ def product_detail_view(request: HttpRequest, pk: int) -> JsonResponse | HttpRes
                     # Иначе создаём новую запись
                     else:
                         CreationInstance.objects.create(
-                            product=product, worker=worker_data, amount=amount, status='IN_WORK', started=timezone.now().date())
+                            product=product, worker=worker_data, amount=amount, status='IN_WORK', started=timezone.now())
                     # Обновляем доступное количество всех частей изделия
                     for part in parts:
                         part.get_ava_amount()
@@ -502,7 +502,7 @@ def product_detail_view(request: HttpRequest, pk: int) -> JsonResponse | HttpRes
                     # Иначе создаём новую запись
                     else:
                         CreationInstance.objects.create(
-                            part=selected_part, worker=worker_data, amount=amount, status='IN_WORK', started=timezone.now().date())
+                            part=selected_part, worker=worker_data, amount=amount, status='IN_WORK', started=timezone.now())
                     # Обновляем доступное количество частей и изделия
                     for part in parts:
                         part.get_ava_amount()
@@ -653,13 +653,13 @@ def my_product_view(request: HttpRequest, pk: int) -> HttpResponse | JsonRespons
                 worker=worker_data, product=instance.product, part=instance.part, status="COMPLETED").first()
             if completed:
                 completed.amount += instance.amount
-                completed.completed = timezone.now().date()
+                completed.completed = timezone.now()
                 completed.save()
                 instance.delete()
             # Иначе помечаем текущее изделие/часть как завершённое
             else:
                 instance.status = 'COMPLETED'
-                instance.completed = timezone.now().date()
+                instance.completed = timezone.now()
                 instance.save()
             # Обновляем доступное кол-во частей
             for part in parts:
@@ -749,20 +749,13 @@ def object_detail_view(request: HttpRequest, pk: int) -> HttpResponse | JsonResp
     object = get_object_or_404(Object, pk=pk)
     states = ObjectStateInstance.objects.filter(object=object)
 
-    # --- LEGACY для формы добавления состояния ---
-    # all_states = ObjectState.objects.all()
-    # idx = 1
-    # form_states = None
-    # for state in all_states:
-    #     if form_states:
-    #         form_states.append((str(idx), state))
-    #     else:
-    #         form_states = [(str(idx), state)]
-    #     idx += 1
-    # form_states.append((str(idx), 'Дедлайн'))
-
     # Получаем данные обо всех изделиях данного объекта
-    products = Product.objects.filter(object=object).prefetch_related('object')
+    products = Product.objects.filter(object=object).prefetch_related(
+        'object',
+        'part_set',
+        'creationinstance_set__worker',
+        'part_set__creationinstance_set__worker'
+    )
     # Создаём флаг возможности удаления объекта
     can_be_deleted = True
     for product in products:
@@ -775,7 +768,33 @@ def object_detail_view(request: HttpRequest, pk: int) -> HttpResponse | JsonResp
         if state.state == get_ready_object_state():
             ready = True
             break
-    # Заполняем контекст для шаблона
+
+    for product in products:
+        product.active_product_instances = [
+            inst for inst in product.creationinstance_set.all()
+            if inst.status == 'IN_WORK'
+        ]
+
+        active_part_instances = []
+        for part in product.part_set.all():
+            for inst in part.creationinstance_set.all():
+                if inst.status == 'IN_WORK':
+                    inst.part_name = part.name
+                    active_part_instances.append(inst)
+        product.active_part_instances = active_part_instances
+
+        completed_instances = []
+        for inst in product.creationinstance_set.all():
+            if inst.status == 'COMPLETED':
+                inst.item_name = "Целое изделие"
+                completed_instances.append(inst)
+        for part in product.part_set.all():
+            for inst in part.creationinstance_set.all():
+                if inst.status == 'COMPLETED':
+                    inst.item_name = f"Деталь: {part.name}"
+                    completed_instances.append(inst)
+        product.completed_instances = completed_instances
+
     context = {
         'object': object,
         'states': states,
@@ -860,14 +879,6 @@ def object_detail_view(request: HttpRequest, pk: int) -> HttpResponse | JsonResp
             "partials/object_details.html", context, request)}
         return JsonResponse(data)
 
-    # --- LEGACY для формы добавления состояния ---
-    # else:
-        # form = AddStateForm(
-        #     initial={'created_at': timezone.now().date()}, choices=form_states)
-    # states = ObjectStateInstance.objects.filter(object=object).all()
-    # context['form'] = form
-    # context['states'] = states
-
     # Возвращаем заполненный шаблон с деталями объекта при стандартной прогрузке страницы
     return render(request, 'object_detail.html', context)
 
@@ -913,13 +924,13 @@ def in_work_view(request: HttpRequest) -> HttpResponse | JsonResponse | HttpResp
             worker=instance.worker, product=instance.product, part=instance.part, status="COMPLETED").first()
         if completed:
             completed.amount += instance.amount
-            completed.completed = timezone.now().date()
+            completed.completed = timezone.now()
             completed.save()
             instance.delete()
         # Иначе помечаем текущее изделие/часть как завершённое
         else:
             instance.status = 'COMPLETED'
-            instance.completed = timezone.now().date()
+            instance.completed = timezone.now()
             instance.save()
         # Обновляем доступное и завершённое количество изделия/частей, готовность объекта
         for part in parts:
@@ -1845,7 +1856,7 @@ def queued_details(request: HttpRequest, pk: int) -> HttpResponse | JsonResponse
         else:
             instance.status = "IN_WORK"
             instance.queued = None
-            instance.started = timezone.now().date()
+            instance.started = timezone.now()
             instance.save()
         # После принятия изделия/части в работу перенаправляем на главную страницу
         return HttpResponseRedirect('/workspace')

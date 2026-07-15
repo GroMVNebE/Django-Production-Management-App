@@ -602,9 +602,9 @@ class CreationInstance(models.Model):
         choices=[('QUEUED', 'QUEUED'), ('IN_WORK', 'IN_WORK'), ('COMPLETED', 'COMPLETED')], max_length=255)
     queued = models.DateTimeField(
         verbose_name="Дата добавления в очередь", null=True, blank=True)
-    started = models.DateField(
+    started = models.DateTimeField(
         verbose_name="Дата начала изготовления", null=True, blank=True)
-    completed = models.DateField(
+    completed = models.DateTimeField(
         verbose_name="Дата окончания изготовления", null=True, blank=True)
 
     def get_absolute_url(self):

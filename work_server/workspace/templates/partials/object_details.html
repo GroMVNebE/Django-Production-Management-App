@@ -1,25 +1,76 @@
 <div class="default_table_container">
   <table class="default_table">
-    <tr>
-      <th>Изделие</th>
-      <th>Название</th>
-      <th>Статус</th>
-    </tr>
-    {% for product in products %}
-    <tr>
-      <td style="width: 12%">
-        <a href="{{ product.get_master_url }}" class="table-link">{{ product.get_id }}</a>
-      </td>
-      <td style="text-align: left">{{ product.name }}</td>
-      {% if product.get_ava_amount < product.amount %} {% if product.get_completed_amount < product.amount %}
-      <td style="width: 10%">В работе</td>
-      {% else %}
-      <td style="width: 10%">Закончен</td>
-      {% endif %} {% else %}
-      <td style="width: 10%">В очереди</td>
+    <thead>
+      <tr>
+        <th style="width: 15%">Изделие</th>
+        <th style="width: 35%">Название</th>
+        <th style="width: 25%">Работник</th>
+        <th colspan="2" style="width: 25%">Временные метки</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for product in products %}
+      <tr style="background-color: #f9f9f9; border-top: 2px solid #ccc;">
+        <td>
+          <a href="{{ product.get_master_url }}" class="table-link" style="font-weight: bold;">
+            {{ product.get_id }}
+          </a>
+        </td>
+        <td colspan="4" style="text-align: left; font-weight: bold;">
+          {{ product.name }} 
+          <span style="font-weight: normal; color: #666; font-size: 0.9em;">(Всего: {{ product.amount }} шт.)</span>
+        </td>
+      </tr>
+
+      {% if product.active_product_instances %}
+        {% for inst in product.active_product_instances %}
+        <tr style="background-color: #fffdf0;">
+          <td style="color: #b58100; font-size: 0.9em; padding-left: 20px;">➔ Изделие в работе</td>
+          <td style="text-align: left;">Кол-во: {{ inst.amount }} шт.</td>
+          <td style="text-align: left;">{{ inst.worker }}</td>
+          <td style="text-align: left; font-size: 0.9em; color: #666;">
+            {{ inst.started|date:"d.m.Y H:i" }}
+          </td>
+          <td style="text-align: center; font-size: 0.9em; color: #ccc;">—</td>
+        </tr>
+        {% endfor %}
       {% endif %}
-    </tr>
-    {% endfor %}
+
+      {% if product.active_part_instances %}
+        {% for inst in product.active_part_instances %}
+        <tr style="background-color: #f5faff;">
+          <td style="color: #0056b3; font-size: 0.9em; padding-left: 20px;">➔ Часть в работе</td>
+          <td style="text-align: left;">
+            <strong>{{ inst.part_name }}</strong> (Кол-во: {{ inst.amount }} шт.)
+          </td>
+          <td style="text-align: left;">{{ inst.worker.name|default:inst.worker }}</td>
+          <td style="text-align: left; font-size: 0.9em; color: #666;">
+            {{ inst.started|date:"d.m.Y H:i" }}
+          </td>
+          <td style="text-align: center; font-size: 0.9em; color: #ccc;">—</td>
+        </tr>
+        {% endfor %}
+      {% endif %}
+
+      {% if product.completed_instances %}
+        {% for inst in product.completed_instances %}
+        <tr style="background-color: #f2fff2; color: #2e5a2e;">
+          <td style="font-size: 0.9em; padding-left: 20px; color: #2e5a2e;">✓ Завершено</td>
+          <td style="text-align: left;">
+            {{ inst.item_name }} (Кол-во: {{ inst.amount }} шт.)
+          </td>
+          <td style="text-align: left;">{{ inst.worker.name|default:inst.worker }}</td>
+          <td style="text-align: left; font-size: 0.85em; color: #555;">
+            {{ inst.started|date:"d.m.Y H:i" }}
+          </td>
+          <td style="text-align: left; font-size: 0.85em; color: #535353; font-weight: bold;">
+            {{ inst.completed|date:"d.m.Y H:i" }}
+          </td>
+        </tr>
+        {% endfor %}
+      {% endif %}
+      {% endfor %}
+    </tbody>
   </table>
   <div class="control-panel">
     <form action="" method="post">
