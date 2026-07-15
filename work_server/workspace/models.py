@@ -81,24 +81,42 @@ class Product(models.Model):
     def get_deadline_days(self):
         return self.object.get_deadline_days()
 
-    def get_ava_amount(self):
-        if self.ava_amount:
+    def get_ava_amount(self, preloaded_instances=None, preloaded_parts=None):
+        if self.ava_amount is not None:
             return self.ava_amount
+
         amount = 0
-        instances = CreationInstance.objects.filter(product=self)
+        if preloaded_instances is not None:
+            # Фильтруем в памяти Python
+            instances = [
+                inst for inst in preloaded_instances if inst.product_id == self.id]
+        else:
+            instances = CreationInstance.objects.filter(product=self)
+
         for instance in instances:
-            if instance.product:
+            if instance.product_id:
                 amount += instance.amount
+
         max_amount = 0
-        parts = Part.objects.filter(product=self)
+        if preloaded_parts is not None:
+            parts = [part for part in preloaded_parts if part.product_id == self.id]
+        else:
+            parts = Part.objects.filter(product=self)
+
         for part in parts:
-            busy = part.get_all_amount() / part.amount
+            busy = part.get_all_amount(
+                preloaded_instances=preloaded_instances) / part.amount
             busy = int(busy) + 1 if int(busy) != busy else int(busy)
             max_amount = max(max_amount, busy)
+
         amount += max_amount
-        self.ava_amount = self.amount - amount
-        self.save()
-        return self.ava_amount
+        calculated_ava = self.amount - amount
+
+        if preloaded_instances is None:
+            self.ava_amount = calculated_ava
+            self.save(update_fields=['ava_amount'])
+
+        return calculated_ava
 
     def ava_float(self):
         amount = 0
@@ -248,27 +266,44 @@ class Part(models.Model):
             amount += part.amount
         return amount
 
-    def get_all_amount(self):
-        amount = 0
-        instances = CreationInstance.objects.filter(part=self)
-        for instance in instances:
-            amount += instance.amount
-        return amount
+    def get_all_amount(self, preloaded_instances=None):
+        if preloaded_instances is not None:
+            instances = [
+                inst for inst in preloaded_instances if inst.part_id == self.id]
+        else:
+            instances = CreationInstance.objects.filter(part=self)
 
-    def get_ava_amount(self):
-        if self.ava_amount:
+        return sum(inst.amount for inst in instances)
+
+    def get_ava_amount(self, preloaded_instances=None):
+        if self.ava_amount is not None:
             return self.ava_amount
+
         ava_amount = self.product.amount
-        instances = CreationInstance.objects.filter(product=self.product)
-        for instance in instances:
+
+        if preloaded_instances is not None:
+            prod_instances = [
+                inst for inst in preloaded_instances if inst.product_id == self.product_id]
+            part_instances = [
+                inst for inst in preloaded_instances if inst.part_id == self.id]
+        else:
+            prod_instances = CreationInstance.objects.filter(
+                product=self.product)
+            part_instances = CreationInstance.objects.filter(part=self)
+
+        for instance in prod_instances:
             ava_amount -= instance.amount
+
         ava_amount *= self.amount
-        parts = CreationInstance.objects.filter(part=self)
-        for part in parts:
-            ava_amount -= part.amount
-        self.ava_amount = ava_amount
-        self.save()
-        return self.ava_amount
+
+        for part_inst in part_instances:
+            ava_amount -= part_inst.amount
+
+        if preloaded_instances is None:
+            self.ava_amount = ava_amount
+            self.save(update_fields=['ava_amount'])
+
+        return ava_amount
 
     def get_completed_amount(self):
         amount = 0

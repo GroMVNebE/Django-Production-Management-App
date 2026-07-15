@@ -4,7 +4,7 @@
 from django.shortcuts import render, get_object_or_404
 from django.template.loader import render_to_string
 from django.contrib.auth.decorators import login_required
-from django.db.models import Prefetch, OuterRef, Exists
+from django.db.models import Prefetch, OuterRef, Exists, Q
 from django.core.exceptions import ValidationError
 from django.core.cache import cache
 from django.http import HttpResponseRedirect, HttpResponseForbidden, JsonResponse, HttpRequest, HttpResponse
@@ -212,31 +212,57 @@ def index(request: HttpRequest) -> JsonResponse | HttpResponse:
             context['queued'] = queued
         # Иначе получаем список всех доступных изделий
         else:
-            # Подзапрос для проверки готовности объекта
             ready_state_subquery = ObjectStateInstance.objects.filter(
                 object=OuterRef('pk'),
                 state=get_ready_object_state()
             )
-            # Получаем список объектов, которые не скрыты, не завершены и готовы к сборке
+
             objects = Object.objects.filter(
-                hidden=False, ready_percentage__lt=100).annotate(is_ready=Exists(ready_state_subquery)).filter(is_ready=True).prefetch_related(Prefetch('product_set', queryset=Product.objects.prefetch_related(Prefetch('part_set', queryset=Part.objects.all()))))
+                hidden=False,
+                ready_percentage__lt=100
+            ).annotate(
+                is_ready=Exists(ready_state_subquery)
+            ).filter(
+                is_ready=True
+            ).prefetch_related(
+                Prefetch('product_set',
+                         queryset=Product.objects.prefetch_related('part_set'))
+            )
+
+            product_ids = []
+            for obj in objects:
+                for product in obj.product_set.all():
+                    product_ids.append(product.id)
+
+            preloaded_instances = list(CreationInstance.objects.filter(
+                Q(product_id__in=product_ids) | Q(
+                    part__product_id__in=product_ids)
+            ))
+
+            preloaded_parts = list(
+                Part.objects.filter(product_id__in=product_ids))
+
             products = []
-            # Если пришёл запрос на поиск изделий - получаем информацию для поиска, иначе оставляем пустую строку (никак не будет влиять на отбор)
             search_query = request.GET.get('search', '')
-            # Проходим по всем объектам и их изделиям для отбора доступных изделий
-            for object in objects:
-                for product in object.product_set.all():
-                    # Ищем и отбираем изделия, доступные к работе (либо можно изготовить изделие целиком, либо какую-либо его часть)
-                    ava_amount = product.get_ava_amount()
-                    has_available_parts = any(
-                        part.get_ava_amount() > 0
-                        for part in product.part_set.all()
+
+            for obj in objects:
+                for product in obj.product_set.all():
+                    ava_amount = product.get_ava_amount(
+                        preloaded_instances=preloaded_instances,
+                        preloaded_parts=preloaded_parts
                     )
+
+                    has_available_parts = False
+                    for part in product.part_set.all():
+                        if part.get_ava_amount(preloaded_instances=preloaded_instances) > 0:
+                            has_available_parts = True
+                            break
+
                     if (ava_amount > 0 or has_available_parts) and search_query in product.get_id():
                         products.append(product)
-            # Добавляем отобранные изделия в контекст для заполнения шаблона
+
             context['products'] = products
-            # Если был запрос поиска - отправляем результат
+
             if request.headers.get('X-Requested-With') == 'XMLHttpSearchRequest':
                 data = {'html': render_to_string(
                     "partials/worker_products.html", context, request)}
